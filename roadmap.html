@@ -98,7 +98,9 @@
 <body>
   <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html">Schedule</a><a href="./roadmap.html" class="current">Roadmap</a></nav>
 
-  <div class="auth-gate" id="auth-gate">
+  <p class="eyebrow" id="boot-loading" style="text-align:center; margin-top:60px;">Loading…</p>
+
+  <div class="auth-gate" id="auth-gate" style="display:none;">
     <p class="eyebrow">Sign in</p>
     <h1>One tap to sync</h1>
     <p class="subtitle">Sign in with the same Google account on every device and this stays in sync automatically.</p>
@@ -340,6 +342,7 @@ document.getElementById("signin-btn").addEventListener("click", () => {
 });
 
 watchAuth((user) => {
+  document.getElementById("boot-loading").style.display = "none";
   const gate = document.getElementById("auth-gate");
   const app = document.getElementById("app");
   const who = document.getElementById("signed-in-as");
