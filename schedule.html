@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Timetable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #10161D;
+    --surface: #171F29;
+    --surface-2: #1E2733;
+    --border: #2A3644;
+    --text: #EDEAE2;
+    --text-dim: #93A1AF;
+    --amber: #E8A548;
+    --amber-dim: rgba(232,165,72,0.14);
+    --teal: #4FB090;
+    --teal-dim: rgba(79,176,144,0.14);
+    --work: #7B93C4;
+    --life: #9C93B5;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  body { padding: 20px 16px 60px; }
+  .shell { max-width: 640px; margin: 0 auto; }
+  nav.top { max-width: 640px; margin: 0 auto 18px; display: flex; gap: 14px; font-family: var(--font-mono); font-size: 12px; }
+  nav.top a { color: var(--text-dim); text-decoration: none; }
+  nav.top a.current { color: var(--amber); }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
+  h1 { font-size: 25px; line-height: 1.2; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-dim); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+
+  .auth-gate { max-width: 420px; margin: 60px auto; text-align: center; }
+  .auth-gate .subtitle { margin: 0 0 22px; }
+  .btn { font-family: var(--font-sans); font-weight: 600; font-size: 14px; border: none; border-radius: 9px; padding: 11px 18px; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--amber); color: #1A1206; }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .auth-error { color: #E88A8A; font-size: 13px; margin-top: 14px; }
+  .signed-in-as { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: right; max-width: 640px; margin: 0 auto 10px; }
+  .signed-in-as button { background: none; border: none; color: var(--text-dim); text-decoration: underline; cursor: pointer; font-family: var(--font-mono); font-size: 11px; padding: 0 0 0 8px; }
+
+  .day-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .day-tab {
+    flex: 1; font-family: var(--font-mono); font-size: 11.5px; text-align: center;
+    padding: 9px 2px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-dim); cursor: pointer;
+  }
+  .day-tab.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); font-weight: 600; }
+  .day-tab.is-today:not(.active) { color: var(--text); }
+  .day-tab:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+  .now-card {
+    position: relative; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 16px 16px 20px; margin-bottom: 20px; overflow: hidden;
+  }
+  .now-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--amber); }
+  .now-clock { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin: 0 0 6px; }
+  .now-clock strong { color: var(--amber); }
+  .now-label { font-size: 12px; color: var(--text-dim); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); }
+  .now-task { font-size: 18px; font-weight: 600; margin: 0; }
+  .now-note { font-size: 13px; color: var(--text-dim); margin: 6px 0 0; }
+
+  .preview-tag { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; }
+
+  .block {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--cat-color, var(--life));
+    border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
+  }
+  .block.interactive { cursor: pointer; }
+  .block.interactive:hover { background: var(--surface-2); }
+  .block.current { background: var(--amber-dim); }
+  .block:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+  .checkbox { flex-shrink: 0; width: 19px; height: 19px; border-radius: 6px; border: 1.5px solid var(--text-dim); margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+  .checkbox.checked { background: var(--teal); border-color: var(--teal); }
+  .checkbox svg { width: 11px; height: 11px; display: none; }
+  .checkbox.checked svg { display: block; }
+
+  .block-body { flex: 1; min-width: 0; }
+  .block-time { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); margin: 0 0 2px; }
+  .block-label { font-size: 14.5px; line-height: 1.4; }
+  .block-label.checked { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--border); }
+  .block-note { font-size: 12.5px; color: var(--text-dim); margin: 4px 0 0; font-style: italic; }
+  .now-badge { font-family: var(--font-mono); font-size: 10px; color: var(--amber); background: var(--amber-dim); padding: 2px 6px; border-radius: 5px; margin-left: 8px; white-space: nowrap; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0 24px; font-size: 12px; color: var(--text-dim); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-color); }
+
+  .weekend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .weekend-title { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
+  .weekend-sub { font-size: 13.5px; color: var(--text-dim); margin: 0 0 16px; line-height: 1.5; }
+  .weekend-list { margin: 0; padding: 0; list-style: none; }
+  .weekend-list li { font-size: 14px; padding: 9px 0; border-top: 1px solid var(--border); color: var(--text); }
+  .weekend-list li:first-child { border-top: none; }
+  .weekend-list li::before { content: '—'; color: var(--teal); margin-right: 8px; }
+
+  .footer { margin-top: 24px; font-size: 12px; color: var(--text-dim); }
+  .save-note::before { content: '●'; color: var(--teal); margin-right: 6px; font-size: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+  <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html" class="current">Schedule</a><a href="./roadmap.html">Roadmap</a></nav>
+
+  <div class="auth-gate" id="auth-gate">
+    <p class="eyebrow">Sign in</p>
+    <h1>One tap to sync</h1>
+    <p class="subtitle">Sign in with the same Google account on every device and this stays in sync automatically.</p>
+    <button class="btn btn-primary" id="signin-btn">Sign in with Google</button>
+    <p class="auth-error" id="auth-error" style="display:none;"></p>
+  </div>
+
+  <p class="signed-in-as" id="signed-in-as" style="display:none;"></p>
+  <div class="shell" id="app" style="display:none;">
+    <p class="eyebrow">Loading…</p>
+  </div>
+
+<script type="module">
+import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-init.js";
+
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
+
+const WORKOUTS = {
+  Mon: "Home workout — full-body strength (bodyweight)",
+  Tue: "Home workout — cardio / HIIT (20-30 min)",
+  Wed: "Home workout — full-body strength (bodyweight)",
+  Thu: "Home workout — cardio or active recovery",
+  Fri: "Home workout — full-body strength (bodyweight)"
+};
+
+function weekdayTemplate(day) {
+  return [
+    { start: "06:30", end: "07:10", cat: "fitness", label: WORKOUTS[day] },
+    { start: "07:10", end: "07:35", cat: "life", label: "Shower & get ready" },
+    { start: "07:35", end: "08:00", cat: "life", label: "Breakfast" },
+    { start: "08:00", end: "12:00", cat: "work", label: "Work block 1" },
+    { start: "12:00", end: "12:30", cat: "life", label: "Lunch" },
+    { start: "12:30", end: "13:00", cat: "study", label: "Light review — flashcards / practice questions" },
+    { start: "13:00", end: "17:00", cat: "work", label: "Work block 2" },
+    { start: "17:00", end: "17:30", cat: "life", label: "Decompress", note: "A real break. Not scrolling, not planning. Just stop." },
+    { start: "17:30", end: "19:00", cat: "study", label: "Deep study — Security+ roadmap" },
+    { start: "19:00", end: "19:45", cat: "life", label: "Dinner" },
+    { start: "19:45", end: "20:30", cat: "study", label: "Hands-on labs — TryHackMe / LetsDefend" },
+    { start: "20:30", end: "21:30", cat: "life", label: "Free time" },
+    { start: "21:30", end: "22:00", cat: "life", label: "Wind-down — screens off" },
+    { start: "22:00", end: "23:59", cat: "life", label: "Sleep", note: "Phone down. Tomorrow's you will thank tonight's you." }
+  ];
+}
+
+const WEEKEND_IDEAS = [
+  "Longer workout or a walk, if you feel like it",
+  "Catch up on labs if you fell behind — totally optional",
+  "Meal prep for the week ahead",
+  "Rest. Actual rest counts as productive here."
+];
+
+const CAT_COLORS = { work: "var(--work)", study: "var(--amber)", fitness: "var(--teal)", life: "var(--life)" };
+const CAT_LABELS = { work: "Work", study: "Study", fitness: "Training", life: "Life" };
+
+const STORAGE_KEY = "schedule-today";
+let checked = {};
+let loaded = false;
+
+function todayIndex() { return (new Date().getDay() + 6) % 7; }
+function todayAbbrev() { return DAYS[todayIndex()]; }
+function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+
+let selectedDay = todayAbbrev();
+
+function toMinutes(str) { const [h,m] = str.split(":").map(Number); return h*60+m; }
+function nowMinutes() { const d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+function nowClockStr() { const d = new Date(); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+
+async function loadState() {
+  try {
+    const value = await loadData(STORAGE_KEY);
+    if (value) {
+      checked = (value.date === todayDateStr()) ? (value.checked || {}) : {};
+    }
+  } catch (e) {
+    checked = {};
+  }
+  loaded = true;
+  render();
+}
+
+async function saveState() {
+  await saveData(STORAGE_KEY, { date: todayDateStr(), checked });
+}
+
+function toggleBlock(start) {
+  checked[start] = !checked[start];
+  saveState();
+  render();
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
+
+  const isWeekend = selectedDay === "Sat" || selectedDay === "Sun";
+  const isToday = selectedDay === todayAbbrev();
+
+  const tabsHtml = DAYS.map(d => `
+    <button class="day-tab${d===selectedDay ? " active" : ""}${d===todayAbbrev() ? " is-today" : ""}" data-action="select-day" data-day="${d}">${d}</button>
+  `).join("");
+
+  let mainHtml = "";
+
+  if (isWeekend) {
+    mainHtml = `
+      <div class="weekend-card">
+        <p class="weekend-title">${DAY_FULL[selectedDay]} is open</p>
+        <p class="weekend-sub">No fixed blocks on weekends — that was the plan. A few optional ideas if you want structure, but skipping all of them is a valid choice too.</p>
+        <ul class="weekend-list">
+          ${WEEKEND_IDEAS.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
+        </ul>
+      </div>
+    `;
+  } else {
+    const blocks = weekdayTemplate(selectedDay);
+    const nm = nowMinutes();
+    const current = isToday ? blocks.find(b => nm >= toMinutes(b.start) && nm < toMinutes(b.end)) : null;
+
+    if (isToday) {
+      mainHtml += `
+        <div class="now-card">
+          <p class="now-clock">It's <strong>${nowClockStr()}</strong></p>
+          <p class="now-label">You should be in</p>
+          <p class="now-task">${current ? escapeHtml(current.label) : "A quiet gap — nothing scheduled"}</p>
+          ${current && current.note ? `<p class="now-note">${escapeHtml(current.note)}</p>` : ""}
+        </div>
+      `;
+    } else {
+      mainHtml += `<p class="preview-tag">Previewing ${DAY_FULL[selectedDay]}</p>`;
+    }
+
+    mainHtml += blocks.map(b => {
+      const isCurrent = current && b.start === current.start;
+      const isChecked = isToday && !!checked[b.start];
+      const interactive = isToday;
+      return `
+        <div class="block${isCurrent ? " current" : ""}${interactive ? " interactive" : ""}"
+             style="--cat-color:${CAT_COLORS[b.cat]}"
+             ${interactive ? `role="checkbox" aria-checked="${isChecked}" tabindex="0" data-action="toggle-block" data-start="${b.start}"` : ""}>
+          ${interactive ? `<span class="checkbox${isChecked ? " checked" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="#0C1712" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>` : ""}
+          <div class="block-body">
+            <p class="block-time">${b.start}–${b.end}${isCurrent ? '<span class="now-badge">NOW</span>' : ""}</p>
+            <p class="block-label${isChecked ? " checked" : ""}">${escapeHtml(b.label)}</p>
+            ${b.note ? `<p class="block-note">${escapeHtml(b.note)}</p>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    mainHtml += `
+      <div class="legend">
+        ${Object.keys(CAT_LABELS).map(c => `<span class="legend-item"><span class="legend-dot" style="--dot-color:${CAT_COLORS[c]}"></span>${CAT_LABELS[c]}</span>`).join("")}
+      </div>
+    `;
+  }
+
+  app.innerHTML = `
+    <p class="eyebrow">Schedule</p>
+    <h1>Your Weekday Timetable</h1>
+    <p class="subtitle">Same structure every weekday. Weekends stay open.</p>
+    <div class="day-tabs">${tabsHtml}</div>
+    ${mainHtml}
+    <p class="footer"><span class="save-note">Today's checks save automatically</span></p>
+  `;
+
+  app.querySelectorAll('[data-action="select-day"]').forEach(el => {
+    el.addEventListener("click", () => { selectedDay = el.getAttribute("data-day"); render(); });
+  });
+  app.querySelectorAll('[data-action="toggle-block"]').forEach(el => {
+    el.addEventListener("click", () => toggleBlock(el.getAttribute("data-start")));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBlock(el.getAttribute("data-start")); }
+    });
+  });
+}
+
+document.getElementById("signin-btn").addEventListener("click", () => {
+  const err = document.getElementById("auth-error");
+  err.style.display = "none";
+  signIn().catch(e => { err.textContent = e.message; err.style.display = ""; });
+});
+
+watchAuth((user) => {
+  const gate = document.getElementById("auth-gate");
+  const app = document.getElementById("app");
+  const who = document.getElementById("signed-in-as");
+  if (user) {
+    gate.style.display = "none";
+    app.style.display = "";
+    who.style.display = "";
+    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">sign out</button>';
+    document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
+    if (!loaded) loadState();
+  } else {
+    gate.style.display = "";
+    app.style.display = "none";
+    who.style.display = "none";
+    loaded = false;
+  }
+});
+
+setInterval(() => { if (loaded) render(); }, 30000);
+</script>
+</body>
+</html>

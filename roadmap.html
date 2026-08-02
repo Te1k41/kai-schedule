@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zero to SOC Analyst — Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #10161D;
+    --surface: #171F29;
+    --surface-2: #1E2733;
+    --border: #2A3644;
+    --text: #EDEAE2;
+    --text-dim: #93A1AF;
+    --amber: #E8A548;
+    --amber-dim: rgba(232,165,72,0.14);
+    --teal: #4FB090;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  body { padding: 20px 16px 60px; }
+  .shell { max-width: 640px; margin: 0 auto; }
+  nav.top { max-width: 640px; margin: 0 auto 18px; display: flex; gap: 14px; font-family: var(--font-mono); font-size: 12px; }
+  nav.top a { color: var(--text-dim); text-decoration: none; }
+  nav.top a.current { color: var(--amber); }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-dim); font-size: 14.5px; line-height: 1.5; margin: 0 0 24px; }
+
+  .auth-gate { max-width: 420px; margin: 60px auto; text-align: center; }
+  .auth-gate .subtitle { margin: 0 0 22px; }
+  .auth-error { color: #E88A8A; font-size: 13px; margin-top: 14px; }
+  .signed-in-as { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: right; max-width: 640px; margin: 0 auto 10px; }
+  .signed-in-as button { background: none; border: none; color: var(--text-dim); text-decoration: underline; cursor: pointer; font-family: var(--font-mono); font-size: 11px; padding: 0 0 0 8px; }
+
+  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); margin-bottom: 8px; }
+  .progress-top strong { color: var(--text); font-size: 13px; }
+  .bar-track { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--teal)); border-radius: 999px; transition: width 0.4s ease; }
+
+  .up-next-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 8px; }
+  .up-next { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 18px 18px 22px; margin-bottom: 28px; overflow: hidden; }
+  .up-next::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--amber); }
+  .up-next.done::before { background: var(--teal); }
+  .up-next-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .ticket-id { font-family: var(--font-mono); font-size: 12px; color: var(--amber); background: var(--amber-dim); padding: 3px 8px; border-radius: 6px; }
+  .up-next-phase { font-size: 12.5px; color: var(--text-dim); }
+  .up-next-task { font-size: 18px; font-weight: 600; line-height: 1.4; margin: 0 0 16px; }
+  .btn { font-family: var(--font-sans); font-weight: 600; font-size: 14px; border: none; border-radius: 9px; padding: 11px 18px; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--amber); color: #1A1206; }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .celebrate { font-size: 15px; line-height: 1.6; color: var(--text); margin: 0; }
+
+  .phase { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--surface); }
+  .phase-header { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; background: transparent; border: none; cursor: pointer; color: var(--text); font-family: var(--font-sans); text-align: left; }
+  .phase-header:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+  .phase-title-wrap { display: flex; flex-direction: column; gap: 2px; }
+  .phase-title { font-size: 15px; font-weight: 600; }
+  .phase-weeks { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); }
+  .phase-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .phase-header-right { display: flex; align-items: center; gap: 10px; }
+  .chevron { width: 9px; height: 9px; border-right: 2px solid var(--text-dim); border-bottom: 2px solid var(--text-dim); transform: rotate(-45deg); transition: transform 0.2s ease; flex-shrink: 0; }
+  .phase.open .chevron { transform: rotate(45deg); }
+
+  .phase-note { font-size: 13px; color: var(--text-dim); padding: 0 16px 12px; margin: -4px 0 0; }
+  .phase-tasks { display: none; border-top: 1px solid var(--border); }
+  .phase.open .phase-tasks { display: block; }
+
+  .task-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; cursor: pointer; border-top: 1px solid var(--border); outline: none; }
+  .task-row:first-child { border-top: none; }
+  .task-row:hover { background: var(--surface-2); }
+  .task-row:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; background: var(--surface-2); }
+
+  .checkbox { flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--text-dim); margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+  .checkbox.checked { background: var(--teal); border-color: var(--teal); }
+  .checkbox svg { width: 12px; height: 12px; display: none; }
+  .checkbox.checked svg { display: block; }
+
+  .task-label { font-size: 14.5px; line-height: 1.45; }
+  .task-label.checked { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--border); }
+
+  .footer { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); }
+  .footer button { background: none; border: none; color: var(--text-dim); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: var(--font-sans); padding: 4px; }
+  .save-note::before { content: '●'; color: var(--teal); margin-right: 6px; font-size: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+  <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html">Schedule</a><a href="./roadmap.html" class="current">Roadmap</a></nav>
+
+  <div class="auth-gate" id="auth-gate">
+    <p class="eyebrow">Sign in</p>
+    <h1>One tap to sync</h1>
+    <p class="subtitle">Sign in with the same Google account on every device and this stays in sync automatically.</p>
+    <button class="btn btn-primary" id="signin-btn">Sign in with Google</button>
+    <p class="auth-error" id="auth-error" style="display:none;"></p>
+  </div>
+
+  <p class="signed-in-as" id="signed-in-as" style="display:none;"></p>
+  <div class="shell" id="app" style="display:none;">
+    <p class="eyebrow">Loading…</p>
+  </div>
+
+<script type="module">
+import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-init.js";
+
+const PHASES = [
+  {
+    id: "p1", title: "Foundations", weeks: "Weeks 1-3",
+    note: "Networking and Linux basics - nothing else clicks without them.",
+    tasks: [
+      { id: "p1-1", label: "Create a free TryHackMe account" },
+      { id: "p1-2", label: "Finish Pre Security: Network Fundamentals" },
+      { id: "p1-3", label: "Finish Pre Security: How the Web Works" },
+      { id: "p1-4", label: "Finish Pre Security: Linux Fundamentals (Parts 1-3)" },
+      { id: "p1-5", label: "Finish Pre Security: Windows Fundamentals" },
+      { id: "p1-6", label: "Complete the full Pre Security path badge" }
+    ]
+  },
+  {
+    id: "p2", title: "Security+", weeks: "Weeks 3-11",
+    note: "The one cert that gets you past CV filters.",
+    tasks: [
+      { id: "p2-1", label: "Save Professor Messer's free SY0-701 course" },
+      { id: "p2-2", label: "Study Domain 1: General Security Concepts" },
+      { id: "p2-3", label: "Study Domain 2: Threats, Vulnerabilities & Mitigations" },
+      { id: "p2-4", label: "Study Domain 3: Security Architecture" },
+      { id: "p2-5", label: "Study Domain 4: Security Operations" },
+      { id: "p2-6", label: "Study Domain 5: Security Program Management" },
+      { id: "p2-7", label: "Start daily practice questions" },
+      { id: "p2-8", label: "Score 85%+ on two full practice exams in a row" },
+      { id: "p2-9", label: "Book the exam voucher" },
+      { id: "p2-10", label: "Sit the Security+ exam" }
+    ]
+  },
+  {
+    id: "p3", title: "SOC Hands-On", weeks: "Weeks 6-16, alongside Security+",
+    note: "This is where you actually learn the job.",
+    tasks: [
+      { id: "p3-1", label: "Start TryHackMe's SOC Level 1 path" },
+      { id: "p3-2", label: "Create a free LetsDefend account" },
+      { id: "p3-3", label: "Complete 5 LetsDefend alert-triage scenarios" },
+      { id: "p3-4", label: "Finish Splunk Fundamentals 1 (free)" },
+      { id: "p3-5", label: "Learn the top 10 MITRE ATT&CK techniques" },
+      { id: "p3-6", label: "Finish TryHackMe SOC Level 1 path" },
+      { id: "p3-7", label: "Complete 10 more LetsDefend scenarios" }
+    ]
+  },
+  {
+    id: "p4", title: "Portfolio", weeks: "Weeks 14-18",
+    note: "This gets you noticed more than the cert alone.",
+    tasks: [
+      { id: "p4-1", label: "Set up GitHub with a simple portfolio README" },
+      { id: "p4-2", label: "Publish write-ups for investigations 1-5" },
+      { id: "p4-3", label: "Publish write-ups for investigations 6-10" },
+      { id: "p4-4", label: "Publish write-ups for investigations 11-15" },
+      { id: "p4-5", label: "Update LinkedIn with certs and progress" },
+      { id: "p4-6", label: "Rewrite CV around Security+, labs, Python background" }
+    ]
+  },
+  {
+    id: "p5", title: "Apply", weeks: "Month 4 onward",
+    note: "Tier 1 SOC Analyst and Junior Security Analyst roles.",
+    tasks: [
+      { id: "p5-1", label: "List 15-20 target companies" },
+      { id: "p5-2", label: "Send first 5 applications" },
+      { id: "p5-3", label: "Prep answers for common SOC interview questions" },
+      { id: "p5-4", label: "Send 5 more applications" },
+      { id: "p5-5", label: "Keep applying weekly and follow up" },
+      { id: "p5-6", label: "Update CV/portfolio from interview feedback" }
+    ]
+  }
+];
+
+const STORAGE_KEY = "soc-roadmap-progress";
+let progress = {};
+let openPhases = new Set();
+let loaded = false;
+
+function flatTasks() {
+  return PHASES.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
+}
+function totalCount() { return flatTasks().length; }
+function doneCount() { return flatTasks().filter(t => progress[t.id]).length; }
+function nextTask() { return flatTasks().find(t => !progress[t.id]) || null; }
+
+async function loadProgress() {
+  try {
+    const value = await loadData(STORAGE_KEY);
+    if (value) progress = value;
+  } catch (e) {
+    progress = {};
+  }
+  loaded = true;
+  const nt = nextTask();
+  if (nt) openPhases.add(nt.phaseId);
+  render();
+}
+
+async function saveProgress() {
+  await saveData(STORAGE_KEY, progress);
+}
+
+function toggleTask(id) {
+  progress[id] = !progress[id];
+  saveProgress();
+  const nt = nextTask();
+  if (nt) openPhases.add(nt.phaseId);
+  render();
+}
+
+function togglePhase(id) {
+  if (openPhases.has(id)) openPhases.delete(id); else openPhases.add(id);
+  render();
+}
+
+async function resetProgress() {
+  if (!confirm("Clear all progress? This can't be undone.")) return;
+  progress = {};
+  await saveProgress();
+  openPhases = new Set([PHASES[0].id]);
+  render();
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
+
+  const total = totalCount();
+  const done = doneCount();
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const nt = nextTask();
+
+  const upNextHtml = nt ? `
+    <div class="up-next">
+      <div class="up-next-meta">
+        <span class="ticket-id">${nt.id.toUpperCase()}</span>
+        <span class="up-next-phase">${escapeHtml(nt.phaseTitle)} &middot; ${escapeHtml(nt.phaseWeeks)}</span>
+      </div>
+      <p class="up-next-task">${escapeHtml(nt.label)}</p>
+      <button class="btn btn-primary" data-action="complete-next" data-id="${nt.id}">Mark done</button>
+    </div>
+  ` : `
+    <div class="up-next done">
+      <p class="celebrate">Every task is checked off. Sit the exam if you have not yet, and get those applications out - you are job-ready.</p>
+    </div>
+  `;
+
+  const phasesHtml = PHASES.map(phase => {
+    const pDone = phase.tasks.filter(t => progress[t.id]).length;
+    const isOpen = openPhases.has(phase.id);
+    const tasksHtml = phase.tasks.map(t => {
+      const checked = !!progress[t.id];
+      return `
+        <div class="task-row" role="checkbox" aria-checked="${checked}" tabindex="0" data-action="toggle-task" data-id="${t.id}">
+          <span class="checkbox${checked ? " checked" : ""}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0C1712" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </span>
+          <span class="task-label${checked ? " checked" : ""}">${escapeHtml(t.label)}</span>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="phase${isOpen ? " open" : ""}">
+        <button class="phase-header" data-action="toggle-phase" data-id="${phase.id}">
+          <span class="phase-title-wrap">
+            <span class="phase-title">${escapeHtml(phase.title)}</span>
+            <span class="phase-weeks">${escapeHtml(phase.weeks)}</span>
+          </span>
+          <span class="phase-header-right">
+            <span class="phase-count">${pDone}/${phase.tasks.length}</span>
+            <span class="chevron"></span>
+          </span>
+        </button>
+        <p class="phase-note">${escapeHtml(phase.note)}</p>
+        <div class="phase-tasks">${tasksHtml}</div>
+      </div>
+    `;
+  }).join("");
+
+  app.innerHTML = `
+    <p class="eyebrow">Roadmap // SOC Analyst</p>
+    <h1>Zero to SOC Analyst</h1>
+    <p class="subtitle">Your step-by-step path into a Tier 1 SOC role. One task at a time - check it off, and the next one lights up.</p>
+
+    <div class="progress-card">
+      <div class="progress-top"><span>Overall progress</span><strong>${done} / ${total} &middot; ${pct}%</strong></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    <p class="up-next-label">Up next</p>
+    ${upNextHtml}
+
+    ${phasesHtml}
+
+    <div class="footer">
+      <span class="save-note">Saved automatically</span>
+      <button data-action="reset" type="button">Reset progress</button>
+    </div>
+  `;
+
+  app.querySelectorAll('[data-action="toggle-task"]').forEach(el => {
+    el.addEventListener("click", () => toggleTask(el.getAttribute("data-id")));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTask(el.getAttribute("data-id")); }
+    });
+  });
+  app.querySelectorAll('[data-action="toggle-phase"]').forEach(el => {
+    el.addEventListener("click", () => togglePhase(el.getAttribute("data-id")));
+  });
+  const completeBtn = app.querySelector('[data-action="complete-next"]');
+  if (completeBtn) {
+    completeBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleTask(completeBtn.getAttribute("data-id")); });
+  }
+  const resetBtn = app.querySelector('[data-action="reset"]');
+  if (resetBtn) resetBtn.addEventListener("click", resetProgress);
+}
+
+document.getElementById("signin-btn").addEventListener("click", () => {
+  const err = document.getElementById("auth-error");
+  err.style.display = "none";
+  signIn().catch(e => { err.textContent = e.message; err.style.display = ""; });
+});
+
+watchAuth((user) => {
+  const gate = document.getElementById("auth-gate");
+  const app = document.getElementById("app");
+  const who = document.getElementById("signed-in-as");
+  if (user) {
+    gate.style.display = "none";
+    app.style.display = "";
+    who.style.display = "";
+    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">sign out</button>';
+    document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
+    if (!loaded) loadProgress();
+  } else {
+    gate.style.display = "";
+    app.style.display = "none";
+    who.style.display = "none";
+    loaded = false;
+  }
+});
+</script>
+</body>
+</html>
