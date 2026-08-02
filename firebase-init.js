@@ -19,12 +19,12 @@ import {
 
 // ---- PASTE YOUR CONFIG HERE ----
 const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyD5FCnhuIRs0egvzGD2O8R1TCQtsvPhe84",
+  authDomain: "kai-schedule-731c0.firebaseapp.com",
+  projectId: "kai-schedule-731c0",
+  storageBucket: "kai-schedule-731c0.firebasestorage.app",
+  messagingSenderId: "154363716987",
+  appId: "1:154363716987:web:9b12e0e8d5158cfffe49de"
 };
 // ---------------------------------
 
