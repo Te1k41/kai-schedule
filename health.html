@@ -145,7 +145,7 @@
 
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
-import { escapeHtml, formatDetail, initAuthUI } from "./app-shell.js";
+import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed } from "./app-shell.js";
 import { MEALS } from "./meals-data.js";
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -265,7 +265,8 @@ async function loadLog() {
 }
 
 async function saveLog() {
-  await saveData(STORAGE_KEY, log);
+  const ok = await saveData(STORAGE_KEY, log);
+  if (!ok) notifySaveFailed();
 }
 
 function readForm(app) {

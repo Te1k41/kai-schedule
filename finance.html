@@ -110,7 +110,7 @@
 
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
-import { escapeHtml, initAuthUI } from "./app-shell.js";
+import { escapeHtml, initAuthUI, notifySaveFailed } from "./app-shell.js";
 
 const STORAGE_KEY = "finance-data";
 const CATEGORIES = [
@@ -170,7 +170,8 @@ function applyRecurringSubscriptions() {
 }
 
 async function saveFinance() {
-  await saveData(STORAGE_KEY, data);
+  const ok = await saveData(STORAGE_KEY, data);
+  if (!ok) notifySaveFailed();
 }
 
 function monthTotal(list) {
