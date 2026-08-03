@@ -183,6 +183,9 @@ const TRYHACKME_MONTHLY_USD = 14;
 let data = { income: [], expenses: [], budgets: {}, goals: [] };
 let loaded = false;
 let rate = { usdToVnd: null, updatedAt: null };
+let markupPct = Number(localStorage.getItem("finance-usd-markup") ?? 11.7);
+
+function effectiveRate() { return rate.usdToVnd ? rate.usdToVnd * (1 + markupPct / 100) : null; }
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function currentMonthKey() { return todayDateStr().slice(0, 7); }
@@ -294,6 +297,7 @@ async function fetchRate(app) {
 function convertHtml() {
   const rateKnown = !!rate.usdToVnd;
   const updatedStr = rate.updatedAt ? new Date(rate.updatedAt).toLocaleString() : "never";
+  const eff = effectiveRate();
   return `
     <p class="eyebrow">USD &harr; VND</p>
     <div class="converter">
@@ -301,8 +305,11 @@ function convertHtml() {
       <div class="converter-row"><span>VND</span><input type="number" id="conv-vnd" placeholder="0" ${rateKnown ? "" : "disabled"} /></div>
     </div>
     <div class="converter-rate">
-      <span id="rate-note">${rateKnown ? `1 USD = ${fmtVnd(rate.usdToVnd)} · ${updatedStr}` : "Rate unavailable — check connection"}</span>
+      <label style="display:flex; align-items:center; gap:6px;">+ VAT/card fee <input type="number" id="conv-markup" value="${markupPct}" step="0.1" style="width:52px; font-family:var(--font-mono); font-size:var(--fs-2xs); border:1px solid var(--border); border-radius:2px; padding:3px 5px; background:var(--paper);" />%</label>
       <button id="refresh-rate-btn" type="button">refresh</button>
+    </div>
+    <div class="converter-rate" style="margin-top:4px;">
+      <span id="rate-note">${rateKnown ? `1 USD = ${fmtVnd(eff)} effective (spot ${fmtVnd(rate.usdToVnd)}) · ${updatedStr}` : "Rate unavailable — check connection"}</span>
     </div>
     <div class="converter-equiv" id="converter-equiv" style="${rateKnown ? "" : "display:none;"}"></div>
   `;
@@ -450,6 +457,7 @@ function render() {
           <p class="eyebrow" style="margin:20px 0 10px;">Add a goal</p>
           <div class="log-form">
             <div class="log-field wide"><label for="goal-name">Name</label><input type="text" id="goal-name" placeholder="e.g. Security+ Voucher" /></div>
+            <div class="log-field"><label for="goal-target-usd">Target (USD, optional)</label><input type="number" id="goal-target-usd" placeholder="fills ₫ incl. tax/fee" /></div>
             <div class="log-field"><label for="goal-target">Target (₫)</label><input type="number" id="goal-target" placeholder="0" /></div>
             <div class="log-field"><label for="goal-saved">Already saved (₫)</label><input type="number" id="goal-saved" placeholder="0" /></div>
           </div>
@@ -483,19 +491,33 @@ function render() {
   if (usdInput && vndInput && rate.usdToVnd) {
     usdInput.addEventListener("input", () => {
       const usd = Number(usdInput.value) || 0;
-      const vnd = usd * rate.usdToVnd;
+      const vnd = usd * effectiveRate();
       vndInput.value = usd ? Math.round(vnd) : "";
       updateEquivalence(vnd);
     });
     vndInput.addEventListener("input", () => {
       const vnd = Number(vndInput.value) || 0;
-      const usd = vnd / rate.usdToVnd;
+      const usd = vnd / effectiveRate();
       usdInput.value = vnd ? usd.toFixed(2) : "";
       updateEquivalence(vnd);
     });
   }
   const refreshBtn = app.querySelector("#refresh-rate-btn");
   if (refreshBtn) refreshBtn.addEventListener("click", () => fetchRate(app));
+  const markupInput = app.querySelector("#conv-markup");
+  if (markupInput) markupInput.addEventListener("change", () => {
+    markupPct = Number(markupInput.value) || 0;
+    localStorage.setItem("finance-usd-markup", markupPct);
+    render();
+  });
+  const goalUsdInput = app.querySelector("#goal-target-usd");
+  const goalVndInput = app.querySelector("#goal-target");
+  if (goalUsdInput && goalVndInput && rate.usdToVnd) {
+    goalUsdInput.addEventListener("input", () => {
+      const usd = Number(goalUsdInput.value) || 0;
+      goalVndInput.value = usd ? Math.round(usd * effectiveRate()) : "";
+    });
+  }
 }
 
 document.getElementById("signin-btn").addEventListener("click", () => {
