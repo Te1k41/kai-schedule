@@ -407,15 +407,22 @@ function render() {
         <section class="card">
           <h2>Today's log</h2>
           <p class="subtitle" style="margin-bottom:16px;">Weigh at the same time each morning. Judge the 3-week trend, not any single day.</p>
+          <p class="eyebrow">Body</p>
           <div class="log-form">
             <div class="log-field"><label for="f-weight">Weight (kg)</label><input type="number" step="0.1" id="f-weight" value="${todayEntry.weight || ""}" /></div>
             <div class="log-field"><label for="f-steps">Steps</label><input type="number" id="f-steps" value="${todayEntry.steps || ""}" /></div>
             <div class="log-field"><label for="f-water">Water (L)</label><input type="number" step="0.1" id="f-water" value="${todayEntry.water || ""}" /></div>
             <div class="log-field"><label for="f-sleep">Sleep (h)</label><input type="number" step="0.1" id="f-sleep" value="${todayEntry.sleep || ""}" /></div>
+          </div>
+          <p class="eyebrow">Training</p>
+          <div class="log-form">
             <div class="log-field"><label for="f-pushup">Push-up level</label><input type="text" id="f-pushup" placeholder="e.g. Wall 2×10" value="${escapeHtml(todayEntry.pushupLevel || "")}" /></div>
             <div class="log-field"><label for="f-plank">Plank (s)</label><input type="number" id="f-plank" value="${todayEntry.plank || ""}" /></div>
             <div class="log-field log-check"><input type="checkbox" id="f-workout" ${todayEntry.workoutDone ? "checked" : ""} /><label for="f-workout">Workout done</label></div>
             <div class="log-field log-check"><input type="checkbox" id="f-protein" ${todayEntry.proteinHit ? "checked" : ""} /><label for="f-protein">Protein hit</label></div>
+          </div>
+          <p class="eyebrow">Notes</p>
+          <div class="log-form">
             <div class="log-field wide"><label for="f-notes">Notes</label><textarea id="f-notes">${escapeHtml(todayEntry.notes || "")}</textarea></div>
           </div>
           <div class="log-save-row">
