@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>Health &amp; Fitness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
+    --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14); --danger: #8A2F20;
+    --cat-work: #2E4A66; --cat-study: #806124; --cat-fitness: #9E3A26; --cat-life: #52603E;
+    --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
+    --font-display: 'Shippori Mincho', Georgia, serif;
+    --fs-2xs: clamp(12.5px, 0.85vw, 14.5px);
+    --fs-xs: clamp(13.5px, 0.95vw, 15.5px);
+    --fs-sm: clamp(14.5px, 1.05vw, 17px);
+    --fs-base: clamp(15.5px, 1.15vw, 18px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); }
+  body {
+    padding: 24px 20px 60px; position: relative; animation: page-in 0.35s ease-out;
+    background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(33,30,26,0.035), transparent 60%);
+  }
+  @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .koi-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.07;
+    background-image: url('./assets/koi.jpg'); background-repeat: no-repeat;
+    animation: koi-sway 10s ease-in-out infinite; transform-origin: center;
+  }
+  @keyframes koi-sway { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(0.4deg) scale(1.02); } }
+  @media (orientation: portrait) { .koi-bg { background-size: auto 78vh; background-position: center center; } }
+  @media (orientation: landscape) { .koi-bg { background-size: auto 92vh; background-position: bottom right; } }
+  @media (max-width: 780px) { .koi-bg { opacity: 0.05; } }
+
+  nav.top, .auth-gate, .signed-in-as, .shell { position: relative; z-index: 1; }
+
+  .shell { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto; }
+  nav.top { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto 24px; display: flex; gap: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  nav.top a { color: var(--ink-soft); text-decoration: none; font-size: clamp(13px, 0.75vw, 16px); font-weight: 700; background-image: linear-gradient(var(--vermillion), var(--vermillion)); background-size: 0% 2px; background-repeat: no-repeat; background-position: left bottom; padding-bottom: 3px; transition: background-size 0.2s ease, color 0.15s ease; }
+  nav.top a:hover { color: var(--ink); background-size: 100% 2px; }
+  nav.top a.current { color: var(--vermillion); }
+
+  .eyebrow { font-size: clamp(12px, 0.65vw, 15px); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vermillion); margin: 0 0 8px; }
+  h1 { font-family: var(--font-display); font-size: clamp(24px, 1.7vw, 34px); line-height: 1.2; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-family: var(--font-display); font-size: clamp(19px, 1.2vw, 24px); font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: var(--ink-soft); font-size: clamp(13.5px, 0.8vw, 17px); line-height: 1.6; margin: 0 0 24px; max-width: 62ch; }
+
+  .auth-gate { max-width: 380px; margin: 80px auto; text-align: center; }
+  .auth-gate .subtitle { margin: 0 0 22px; }
+  .btn {
+    font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
+    border: none; background: var(--vermillion); color: var(--paper);
+    padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
+  .btn-ghost { background: transparent; color: var(--vermillion); border: 1px solid var(--vermillion); }
+  .auth-error { color: var(--danger); font-size: var(--fs-sm); margin-top: 14px; }
+  .signed-in-as { font-size: var(--fs-xs); color: var(--ink-soft); text-align: right; max-width: 600px; margin: 0 auto 14px; }
+  .signed-in-as button { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: var(--fs-xs); padding: 0 0 0 10px; }
+  .signed-in-as button:hover { color: var(--ink); }
+
+  .layout { display: grid; grid-template-columns: 1fr minmax(220px, clamp(280px, 20vw, 380px)); gap: clamp(56px, 4.5vw, 110px); align-items: start; }
+  .col-side { position: sticky; top: 24px; background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px; padding: 22px 24px; }
+  .col-main { min-width: 0; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 20px; } .col-side { position: static; order: -1; } }
+
+  section.card { margin-bottom: 44px; }
+  .rule-goal { font-size: clamp(15px, 0.9vw, 18px); color: var(--ink); margin: 0 0 22px; font-style: italic; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 26px; }
+  .stat { background: var(--paper); padding: 14px 16px; }
+  .stat-label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin: 0 0 4px; }
+  .stat-value { font-family: var(--font-display); font-size: clamp(18px, 1.3vw, 24px); font-weight: 600; color: var(--vermillion); }
+  .stat-value.small { font-size: clamp(15px, 1vw, 18px); }
+
+  .rules-list { margin: 0 0 8px; padding: 0; list-style: none; counter-reset: rule; }
+  .rules-list li { counter-increment: rule; display: flex; gap: 12px; padding: 10px 2px; border-top: 1px solid var(--border); font-size: var(--fs-base); line-height: 1.5; }
+  .rules-list li:first-child { border-top: none; }
+  .rules-list li::before { content: counter(rule); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--vermillion); flex-shrink: 0; width: 18px; }
+
+  .log-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .log-field { display: flex; flex-direction: column; gap: 5px; }
+  .log-field.wide { grid-column: 1 / -1; }
+  .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+  .log-field input[type="number"], .log-field input[type="text"], .log-field textarea {
+    font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
+    border: 1px solid var(--border); border-radius: 2px; padding: 9px 10px; width: 100%;
+  }
+  .log-field textarea { resize: vertical; min-height: 60px; font-family: var(--font); }
+  .log-field input:focus-visible, .log-field textarea:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
+  .log-check { display: flex; align-items: center; gap: 8px; flex-direction: row; }
+  .log-check input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; width: 19px; height: 19px; flex-shrink: 0;
+    border: 1.5px solid var(--ink-soft); border-radius: 2px; background: transparent; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .log-check input[type="checkbox"]:checked { background: var(--vermillion); border-color: var(--vermillion); }
+  .log-check input[type="checkbox"]:checked::after { content: '了'; color: var(--paper); font-size: 11px; font-family: var(--font-display); line-height: 1; }
+  .log-check label { font-size: var(--fs-sm); color: var(--ink); text-transform: none; letter-spacing: 0; }
+  .log-save-row { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+  .log-saved-note { font-size: var(--fs-xs); color: var(--ink-soft); }
+
+  .history-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin-bottom: 44px; }
+  .history-table th, .history-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .history-table th { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: 600; }
+  .history-table td { font-family: var(--font-mono); }
+  .history-empty { font-size: var(--fs-sm); color: var(--ink-soft); font-style: italic; }
+
+  details.day-group { border-bottom: 1px solid var(--border); }
+  details.day-group summary { list-style: none; cursor: pointer; }
+  details.day-group summary::-webkit-details-marker { display: none; }
+  .day-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 10px; margin: 0 -10px; border-radius: 2px; transition: background-color 0.15s ease; }
+  details.day-group:hover .day-header { background: rgba(33,30,26,0.035); }
+  .day-header:focus-visible { outline: 2px solid var(--vermillion); outline-offset: -2px; }
+  .day-title { font-family: var(--font-display); font-size: clamp(18px, 1.3vw, 21px); font-weight: 600; }
+  .day-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-soft); }
+  .day-chevron { color: var(--ink-soft); font-size: 12px; transition: transform 0.15s ease; }
+  details.day-group[open] .day-chevron { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .day-chevron, .day-header { transition: none; } }
+
+  .meal-row { display: flex; flex-direction: column; gap: 2px; padding: 12px 2px 12px 16px; border-top: 1px solid var(--border); border-left: 3px solid var(--cat-color, var(--cat-life)); border-radius: 0 2px 2px 0; }
+  .meal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .meal-slot { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--vermillion); font-weight: 700; }
+  .meal-dish { font-size: var(--fs-base); font-weight: 600; }
+  .meal-macros { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-soft); white-space: nowrap; }
+  .meal-detail summary { list-style: none; cursor: pointer; font-size: var(--fs-sm); color: var(--vermillion); font-weight: 600; margin-top: 4px; }
+  .meal-detail summary::-webkit-details-marker { display: none; }
+  .meal-detail summary::before { content: '+ Ingredients & prep'; }
+  .meal-detail[open] summary::before { content: '– Ingredients & prep'; }
+  .meal-detail-body { line-height: 1.75; font-size: clamp(16px, 1.15vw, 18.5px); color: var(--ink); margin: 8px 0 4px; padding: 12px 14px; border-left: 3px solid var(--vermillion); background: var(--paper-deep); }
+  .meal-detail-body .detail-para { margin: 0 0 14px; }
+  .meal-detail-body .detail-para:last-child { margin-bottom: 0; }
+  .meal-detail-body strong { color: var(--vermillion); font-weight: 700; }
+  .day-total { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-soft); padding: 10px 2px; }
+
+  .exercise-row { padding: 12px 2px; border-top: 1px solid var(--border); }
+  .exercise-row:first-child { border-top: none; }
+  .exercise-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .exercise-num { font-family: var(--font-mono); color: var(--vermillion); font-size: 12px; }
+  .exercise-name { font-weight: 600; font-size: var(--fs-base); }
+  .exercise-sets { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-soft); margin-left: auto; }
+  .exercise-cue { font-size: var(--fs-sm); color: var(--ink-soft); margin: 4px 0 0; }
+  .exercise-scale { font-size: var(--fs-xs); color: var(--ink-soft); margin: 3px 0 0; font-style: italic; }
+  .prep-list { margin: 0 0 20px; padding: 0; list-style: none; }
+  .prep-list li { font-size: var(--fs-sm); padding: 6px 2px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 10px; }
+  .prep-list li:first-child { border-top: none; }
+  .prep-list .prep-time { font-family: var(--font-mono); color: var(--ink-soft); font-size: var(--fs-xs); }
+  .progress-note { font-size: var(--fs-base); line-height: 1.7; color: var(--ink); padding: 10px 2px 0; }
+  .progress-note .detail-para { margin: 0 0 12px; }
+  .progress-note .detail-para:last-child { margin-bottom: 0; }
+  .progress-note strong { color: var(--vermillion); font-weight: 700; }
+
+  table.ref-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin-bottom: 10px; }
+  table.ref-table th, table.ref-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  table.ref-table th { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: 600; }
+  table.ref-table td.num { font-family: var(--font-mono); text-align: right; }
+  .cat-heading { font-family: var(--font-mono); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--vermillion); margin: 22px 0 4px; }
+  .cat-heading:first-of-type { margin-top: 4px; }
+  .ref-total { display: flex; justify-content: space-between; padding: 10px 2px; font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 700; border-top: 1px solid var(--ink); margin-top: 4px; }
+  .ref-note { font-size: var(--fs-xs); color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
+
+  .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="koi-bg" aria-hidden="true"></div>
+
+  <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html">Schedule</a><a href="./roadmap.html">Roadmap</a><a href="./health.html" class="current">Health</a></nav>
+
+  <p class="eyebrow" id="boot-loading" style="text-align:center; margin-top:60px;">Loading…</p>
+
+  <div class="auth-gate" id="auth-gate" style="display:none;">
+    <p class="eyebrow">Sign in</p>
+    <h1>One tap to sync</h1>
+    <p class="subtitle">Sign in with the same Google account on every device and this stays in sync automatically.</p>
+    <button class="btn" id="signin-btn">Sign in with Google</button>
+    <p class="auth-error" id="auth-error" style="display:none;"></p>
+  </div>
+
+  <p class="signed-in-as" id="signed-in-as" style="display:none;"></p>
+  <div class="shell" id="app" style="display:none;">
+    <p class="eyebrow">Loading…</p>
+  </div>
+
+<script type="module">
+import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-init.js";
+
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
+const CAT_COLOR_VARS = { work: "var(--cat-work)", study: "var(--cat-study)", fitness: "var(--cat-fitness)", life: "var(--cat-life)" };
+
+const RULES = [
+  "Food creates fat loss — no workout cancels out overeating.",
+  "Protein every meal keeps muscle → defined, not skinny-soft.",
+  "Cut sugary drinks. Water or black coffee only.",
+  "Sleep 8h — poor sleep raises hunger hormones and cravings.",
+  "Never miss twice: one miss is nothing, two in a row starts a habit.",
+  "Weigh weekly, judge the 3-week trend — not any single day."
+];
+
+const MEALS = {
+  Mon: {
+    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs (150g), 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Steep oats in hot water 5 min; boil eggs; banana on the side." },
+    lunch: { dish: "Rice + boiled chicken breast + water spinach", ingredients: "Rice 150g, chicken breast 200g, water spinach 150g", cal: 550, protein: 52, cost: 20000, prep: "Boil chicken with ginger; dip in salt-pepper-lime." },
+    dinner: { dish: "Rice + tofu in tomato sauce + greens soup", ingredients: "Rice 120g, tofu 200g, 2 tomatoes, mustard greens 100g", cal: 500, protein: 26, cost: 13000, prep: "Simmer tofu in tomato sauce; light greens soup." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat within 30 min after training." }
+  },
+  Tue: {
+    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs both sides, fill baguette; milk on the side." },
+    lunch: { dish: "Rice + braised lean pork + boiled cabbage", ingredients: "Rice 150g, lean pork 180g, cabbage 150g", cal: 560, protein: 44, cost: 27000, prep: "Braise lean pork on low heat; boil cabbage until just done." },
+    dinner: { dish: "Rice + steamed fish + greens", ingredients: "Rice 120g, fish 200g, mustard greens 100g, ginger, scallion", cal: 480, protein: 38, cost: 21000, prep: "Steam fish with ginger and scallion; boil greens." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Protein top-up snack." }
+  },
+  Wed: {
+    breakfast: { dish: "Egg fried rice (light oil)", ingredients: "Cold rice 150g, 3 eggs, scallion, salt", cal: 460, protein: 24, cost: 12500, prep: "Crack eggs straight into rice; toss fast on high heat." },
+    lunch: { dish: "Rice + pan-seared chicken breast + broccoli", ingredients: "Rice 150g, chicken breast 200g, broccoli 150g, garlic", cal: 540, protein: 52, cost: 22000, prep: "Season chicken with salt-pepper-garlic; sear both sides." },
+    dinner: { dish: "Rice noodles + boiled lean pork + herbs", ingredients: "Rice noodles 150g, lean pork 150g, bean sprouts, herbs", cal: 450, protein: 34, cost: 27000, prep: "Slice boiled pork; serve over noodles with herbs and dip." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
+  },
+  Thu: {
+    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs, 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Filling breakfast, steady energy." },
+    lunch: { dish: "Rice + lemongrass chicken thigh (skinless) + water spinach", ingredients: "Rice 150g, chicken thigh 220g (skinless), water spinach 150g", cal: 560, protein: 44, cost: 19000, prep: "Braise chicken with lemongrass; remove skin to cut fat." },
+    dinner: { dish: "Rice + tofu stuffed with pork (steamed) + soup", ingredients: "Rice 120g, tofu 200g, ground pork 80g, mushroom, scallion", cal: 500, protein: 32, cost: 20500, prep: "Hollow tofu, stuff with pork + mushroom, steam 15 min." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon snack." }
+  },
+  Fri: {
+    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs, fill baguette, milk on the side." },
+    lunch: { dish: "Rice + boiled chicken breast + winter melon soup", ingredients: "Rice 150g, chicken breast 200g, winter melon 150g, scallion", cal: 500, protein: 50, cost: 19500, prep: "Boil chicken; light winter melon soup." },
+    dinner: { dish: "Rice + steamed egg-pork loaf + boiled greens", ingredients: "Rice 120g, 3 eggs, ground pork 80g, fish sauce", cal: 500, protein: 34, cost: 22000, prep: "Mix eggs + pork + fish sauce; steam or pan-cook." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
+  },
+  Sat: {
+    breakfast: { dish: "Beef pho (simple homemade)", ingredients: "Pho noodles 150g, lean beef 100g, sprouts, herbs, broth", cal: 450, protein: 28, cost: 33000, prep: "Thin-slice beef; pour hot broth over; add sprouts + herbs." },
+    lunch: { dish: "Rice + black-pepper braised pork + water spinach", ingredients: "Rice 150g, lean pork 180g, water spinach 150g", cal: 560, protein: 44, cost: 28000, prep: "Braise pork with black pepper; boil water spinach." },
+    dinner: { dish: "Rice + sour fish soup (light) + greens", ingredients: "Rice 120g, fish 180g, tomato, pineapple, tamarind, greens", cal: 480, protein: 34, cost: 19500, prep: "Light sour soup, minimal sugar; serve with greens." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Snack." }
+  },
+  Sun: {
+    breakfast: { dish: "Chicken sticky rice (light portion)", ingredients: "Glutinous rice 100g, chicken breast 120g, fried shallots, fish sauce", cal: 480, protein: 30, cost: 13000, prep: "Steam sticky rice; shred boiled chicken on top; keep portion modest." },
+    lunch: { dish: "Rice + pan-seared chicken breast + salad", ingredients: "Rice 150g, chicken breast 200g, lettuce, tomato, cucumber", cal: 520, protein: 52, cost: 21000, prep: "Sear chicken; serve with fresh salad + lime." },
+    dinner: { dish: "Rice + tofu braised with egg + cabbage", ingredients: "Rice 120g, tofu 150g, 2 eggs, cabbage", cal: 480, protein: 28, cost: 15000, prep: "Braise tofu with egg; season fish sauce-sugar-scallion." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon / post-workout snack." }
+  }
+};
+const MEAL_SLOTS = [["breakfast","Breakfast","life"],["lunch","Lunch","life"],["dinner","Dinner","life"],["snack","Snack","life"]];
+
+const WARMUP = [
+  ["March in place", "30 sec"], ["Arm circles", "20 sec each way"], ["Hip circles", "20 sec each way"],
+  ["5 slow partial squats", "5 reps"], ["Shoulder rolls", "15 sec"]
+];
+const COOLDOWN = [
+  ["Doorway chest stretch", "20 sec"], ["Standing quad stretch", "20 sec each"],
+  ["Standing hamstring reach", "20 sec"], ["Cat-cow", "5 slow reps"], ["Child's pose", "30 sec"]
+];
+const EXERCISES = [
+  { name: "Wall Push-up", sets: "2 × 8-12", rest: "60-90s", cue: "Body straight; elbows ~45°; chest near wall", scale: "Easier: stand closer. Harder: feet back / incline." },
+  { name: "Assisted Squat", sets: "2 × 8-12", rest: "60-90s", cue: "Knees over toes; weight in heels; chest up", scale: "Easier: more hand support. Harder: free squat, 3s down." },
+  { name: "Glute Bridge", sets: "2 × 10-15", rest: "60-90s", cue: "Drive through heels; squeeze glutes; ribs down", scale: "Easier: partial lift. Harder: 2-3s pause / single leg." },
+  { name: "Superman Hold", sets: "2 × 20-30s", rest: "60s", cue: "Lift with back not neck; eyes down; small lift", scale: "Easier: chest+arms only. Harder: hold up to 45s." },
+  { name: "Dead Bug", sets: "2 × 6-8/side", rest: "60s", cue: "Low back pressed flat; move slow; exhale on extend", scale: "Easier: legs only. Harder: limbs closer to floor." },
+  { name: "Wall Sit", sets: "2 × 15-30s", rest: "60s", cue: "Knees over ankles; back flat on wall; breathe", scale: "Easier: don't slide as low. Harder: toward 90°, +time." }
+];
+const PROGRESSION = "1. Add reps first — creep up within the range each session (8 → 10 → 12).\n\n2. Once you hit the top of the range for 2 weeks, advance to a harder variation (see \"Scale → harder\").\n\n3. Log it below. Beat last week's number, even by one rep — that's progress.\n\n4. Too tired? Just warm-up + one set of wall push-ups. It still counts — keeps the streak alive.";
+
+const SHOPPING = {
+  "Protein": [
+    ["Eggs", "40 pcs", 3200, 128000], ["Chicken breast fillet", "1.2 kg", 72000, 86400],
+    ["Chicken thigh", "0.25 kg", 60000, 15000], ["Lean pork", "0.7 kg", 125000, 87500],
+    ["Ground pork", "0.25 kg", 125000, 31250], ["Lean beef", "0.1 kg", 260000, 26000],
+    ["Fish (tilapia/basa, cleaned)", "0.6 kg", 78000, 46800], ["White tofu", "6 block", 6000, 36000]
+  ],
+  "Dairy": [["Unsweetened yogurt", "8 tub", 6000, 48000], ["Unsweetened milk", "1 · 1L carton", 34000, 34000]],
+  "Carbs": [
+    ["Rice", "1.5 kg", 22000, 33000], ["Glutinous rice", "0.2 kg", 30000, 6000],
+    ["Oats (500g pack)", "1 pack", 45000, 45000], ["Baguette", "3 loaf", 4000, 12000],
+    ["Rice noodles (pho/bun)", "1 pack", 15000, 15000]
+  ],
+  "Veg": [
+    ["Water spinach", "4 bunch", 8000, 32000], ["Cabbage", "1 head", 12000, 12000],
+    ["Mustard greens / broccoli", "3 bunch", 10000, 30000], ["Tomato", "0.5 kg", 18000, 9000],
+    ["Winter melon", "0.5 kg", 15000, 7500], ["Lettuce + cucumber", "0.4 kg", 18000, 7200]
+  ],
+  "Fruit": [["Banana", "1 bunch", 25000, 25000]],
+  "Seasoning": [["Garlic, lemongrass, ginger, onion", "1 set", 30000, 30000], ["Fish sauce, soy sauce, oil", "1 set", 40000, 40000]]
+};
+const SHOPPING_TOTAL = 842650;
+const MONTHLY_FOOD_COST = 2172857;
+
+const PRICES = [
+  ["Egg", "3,200₫", "each"], ["Oats", "90₫", "per g"], ["Banana", "2,300₫", "each"],
+  ["Chicken breast", "72₫", "per g"], ["Chicken thigh (skinless)", "60₫", "per g"], ["Lean pork", "125₫", "per g"],
+  ["Ground pork", "125₫", "per g"], ["Lean beef", "260₫", "per g"], ["Fish (tilapia/basa)", "78₫", "per g"],
+  ["Tofu", "25₫", "per g"], ["Unsweetened yogurt", "6,000₫", "per 150g tub"], ["Unsweetened milk", "34₫", "per ml"],
+  ["Cooked rice", "9₫", "per g"], ["Glutinous rice", "30₫", "per g raw"], ["Baguette", "4,000₫", "per loaf"],
+  ["Rice noodles (pho/bun)", "5,000₫", "per serving"]
+];
+
+const DAILY_TOTALS = {
+  Mon: { cal: 1810, protein: 128, cost: 61000 }, Tue: { cal: 1760, protein: 128, cost: 78000 },
+  Wed: { cal: 1750, protein: 132, cost: 74000 }, Thu: { cal: 1820, protein: 126, cost: 68000 },
+  Fri: { cal: 1720, protein: 130, cost: 71000 }, Sat: { cal: 1790, protein: 128, cost: 93000 },
+  Sun: { cal: 1780, protein: 132, cost: 62000 }
+};
+
+const HEIGHT_M = 1.65;
+const STORAGE_KEY = "health-tracker-log";
+let log = {};
+let loaded = false;
+
+function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function todayAbbrev() { const d = new Date(); return DAYS[(d.getDay()+6)%7]; }
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function formatDetail(text) {
+  return text.split("\n\n").map(chunk => {
+    const html = escapeHtml(chunk)
+      .replace(/^(\d+\.\s+[^—\n]+)(—)/gm, "<strong>$1</strong>$2")
+      .replace(/^(\d+\.)(\s)/gm, "<strong>$1</strong>$2")
+      .replace(/\b([A-Z][A-Za-z]*(?:\s[a-z]+)?:)(?=\s|$)/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>");
+    return `<p class="detail-para">${html}</p>`;
+  }).join("");
+}
+
+function latestWeight() {
+  const dates = Object.keys(log).sort();
+  for (let i = dates.length - 1; i >= 0; i--) {
+    if (log[dates[i]] && log[dates[i]].weight) return Number(log[dates[i]].weight);
+  }
+  return 81;
+}
+
+async function loadLog() {
+  try {
+    const value = await loadData(STORAGE_KEY);
+    if (value) log = value;
+  } catch (e) {
+    log = {};
+  }
+  loaded = true;
+  render();
+}
+
+async function saveLog() {
+  await saveData(STORAGE_KEY, log);
+}
+
+function readForm(app) {
+  const val = (id) => app.querySelector(`#${id}`).value;
+  const checked = (id) => app.querySelector(`#${id}`).checked;
+  return {
+    weight: val("f-weight"), steps: val("f-steps"), water: val("f-water"), sleep: val("f-sleep"),
+    workoutDone: checked("f-workout"), proteinHit: checked("f-protein"),
+    pushupLevel: val("f-pushup"), plank: val("f-plank"), notes: val("f-notes")
+  };
+}
+
+function saveTodayEntry() {
+  const app = document.getElementById("app");
+  const entry = readForm(app);
+  log[todayDateStr()] = entry;
+  saveLog();
+  const note = app.querySelector("#log-saved-note");
+  if (note) { note.textContent = "Saved just now."; }
+  render();
+}
+
+function mealRowHtml(meal, slotLabel, cat) {
+  return `
+    <div class="meal-row" style="--cat-color:${CAT_COLOR_VARS[cat]}">
+      <div class="meal-top">
+        <span><span class="meal-slot">${slotLabel}</span> — <span class="meal-dish">${escapeHtml(meal.dish)}</span></span>
+        <span class="meal-macros">${meal.cal} kcal · ${meal.protein}g · ${meal.cost.toLocaleString()}₫</span>
+      </div>
+      <details class="meal-detail">
+        <summary></summary>
+        <div class="meal-detail-body">${formatDetail(`Ingredients: ${meal.ingredients}\n\n${meal.prep}`)}</div>
+      </details>
+    </div>
+  `;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
+
+  const today = todayAbbrev();
+  const todayEntry = log[todayDateStr()] || {};
+  const weight = latestWeight();
+  const bmi = (weight / (HEIGHT_M * HEIGHT_M)).toFixed(1);
+
+  const historyDates = Object.keys(log).sort().reverse().slice(0, 10);
+  const historyHtml = historyDates.length ? `
+    <table class="history-table">
+      <thead><tr><th>Date</th><th>Weight</th><th>Steps</th><th>Sleep</th><th>Workout</th><th>Protein</th></tr></thead>
+      <tbody>
+        ${historyDates.map(d => {
+          const e = log[d];
+          return `<tr><td>${d}</td><td>${e.weight || "—"}</td><td>${e.steps || "—"}</td><td>${e.sleep || "—"}</td><td>${e.workoutDone ? "yes" : "—"}</td><td>${e.proteinHit ? "yes" : "—"}</td></tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  ` : `<p class="history-empty">No entries logged yet — save today's to start your history.</p>`;
+
+  const daysHtml = DAYS.map(d => {
+    const m = MEALS[d];
+    const t = DAILY_TOTALS[d];
+    const isToday = d === today;
+    const mealsHtml = MEAL_SLOTS.map(([key, label, cat]) => mealRowHtml(m[key], label, cat)).join("");
+    return `
+      <details class="day-group" ${isToday ? "open" : ""}>
+        <summary>
+          <div class="day-header">
+            <span class="day-title">${DAY_FULL[d]}${isToday ? " — today" : ""}</span>
+            <span style="display:flex; align-items:center; gap:12px;">
+              <span class="day-meta">${t.cal} kcal · ${t.protein}g · ${t.cost.toLocaleString()}₫</span>
+              <span class="day-chevron">▾</span>
+            </span>
+          </div>
+        </summary>
+        ${mealsHtml}
+      </details>
+    `;
+  }).join("");
+
+  const shoppingHtml = Object.entries(SHOPPING).map(([cat, items]) => `
+    <p class="cat-heading">${cat}</p>
+    <table class="ref-table">
+      <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead>
+      <tbody>
+        ${items.map(([name, qty, unit, total]) => `<tr><td>${name}</td><td class="num">${qty}</td><td class="num">${unit.toLocaleString()}₫</td><td class="num">${total.toLocaleString()}₫</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `).join("");
+
+  const pricesHtml = `
+    <table class="ref-table">
+      <thead><tr><th>Ingredient</th><th>Price</th><th>Priced per</th></tr></thead>
+      <tbody>
+        ${PRICES.map(([name, price, per]) => `<tr><td>${name}</td><td class="num">${price}</td><td>${per}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+
+  const exercisesHtml = EXERCISES.map((ex, i) => `
+    <div class="exercise-row">
+      <div class="exercise-top">
+        <span class="exercise-num">${i + 1}</span>
+        <span class="exercise-name">${ex.name}</span>
+        <span class="exercise-sets">${ex.sets} · rest ${ex.rest}</span>
+      </div>
+      <p class="exercise-cue">${ex.cue}</p>
+      <p class="exercise-scale">${ex.scale}</p>
+    </div>
+  `).join("");
+
+  app.innerHTML = `
+    <p class="eyebrow">Health</p>
+    <h1>Phase 2 — Fat Loss</h1>
+    <p class="subtitle">Goal: lose fat to a lean, defined body.</p>
+
+    <div class="layout">
+      <div class="col-main">
+
+        <section class="card">
+          <div class="stats-grid">
+            <div class="stat"><p class="stat-label">Age</p><p class="stat-value small">23</p></div>
+            <div class="stat"><p class="stat-label">Height</p><p class="stat-value small">1m65</p></div>
+            <div class="stat"><p class="stat-label">Current weight</p><p class="stat-value">${weight} kg</p></div>
+            <div class="stat"><p class="stat-label">Goal weight</p><p class="stat-value">~60 kg</p></div>
+            <div class="stat"><p class="stat-label">BMI</p><p class="stat-value">${bmi}</p></div>
+            <div class="stat"><p class="stat-label">Fat to lose</p><p class="stat-value small">~21 kg</p></div>
+            <div class="stat"><p class="stat-label">Daily calories</p><p class="stat-value small">1,800–1,900</p></div>
+            <div class="stat"><p class="stat-label">Protein / day</p><p class="stat-value small">~130 g</p></div>
+            <div class="stat"><p class="stat-label">Loss rate</p><p class="stat-value small">0.4–0.7 kg/wk</p></div>
+            <div class="stat"><p class="stat-label">Timeline</p><p class="stat-value small">~9–12 months</p></div>
+          </div>
+          <ol class="rules-list">
+            ${RULES.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
+          </ol>
+        </section>
+
+        <section class="card">
+          <h2>Today's log</h2>
+          <p class="subtitle" style="margin-bottom:16px;">Weigh at the same time each morning. Judge the 3-week trend, not any single day.</p>
+          <div class="log-form">
+            <div class="log-field"><label for="f-weight">Weight (kg)</label><input type="number" step="0.1" id="f-weight" value="${todayEntry.weight || ""}" /></div>
+            <div class="log-field"><label for="f-steps">Steps</label><input type="number" id="f-steps" value="${todayEntry.steps || ""}" /></div>
+            <div class="log-field"><label for="f-water">Water (L)</label><input type="number" step="0.1" id="f-water" value="${todayEntry.water || ""}" /></div>
+            <div class="log-field"><label for="f-sleep">Sleep (h)</label><input type="number" step="0.1" id="f-sleep" value="${todayEntry.sleep || ""}" /></div>
+            <div class="log-field"><label for="f-pushup">Push-up level</label><input type="text" id="f-pushup" placeholder="e.g. Wall 2×10" value="${escapeHtml(todayEntry.pushupLevel || "")}" /></div>
+            <div class="log-field"><label for="f-plank">Plank (s)</label><input type="number" id="f-plank" value="${todayEntry.plank || ""}" /></div>
+            <div class="log-field log-check"><input type="checkbox" id="f-workout" ${todayEntry.workoutDone ? "checked" : ""} /><label for="f-workout">Workout done</label></div>
+            <div class="log-field log-check"><input type="checkbox" id="f-protein" ${todayEntry.proteinHit ? "checked" : ""} /><label for="f-protein">Protein hit</label></div>
+            <div class="log-field wide"><label for="f-notes">Notes</label><textarea id="f-notes">${escapeHtml(todayEntry.notes || "")}</textarea></div>
+          </div>
+          <div class="log-save-row">
+            <button class="btn" id="save-log-btn" type="button">Save today's log</button>
+            <span class="log-saved-note" id="log-saved-note"></span>
+          </div>
+          <p class="eyebrow" style="margin-bottom:10px;">Recent entries</p>
+          ${historyHtml}
+        </section>
+
+        <section class="card">
+          <h2>Meal plan</h2>
+          <p class="subtitle" style="margin-bottom:16px;">Lean proteins, more veg, controlled rice, no sugary drinks. Costs are Ho Chi Minh City market prices, Jul 2026.</p>
+          ${daysHtml}
+        </section>
+
+        <section class="card">
+          <h2>Full-Body A — bodyweight</h2>
+          <p class="subtitle" style="margin-bottom:6px;">3×/week (Mon · Wed · Fri) · ~25 min · 2 sets each, rest 60-90s, slow and controlled.</p>
+          <p class="progress-note" style="margin-bottom:16px;">Muscle burn is OK. Sharp or joint pain means stop.</p>
+          <p class="eyebrow">Warm-up · 2-3 min</p>
+          <ul class="prep-list">${WARMUP.map(([name, time]) => `<li><span>${name}</span><span class="prep-time">${time}</span></li>`).join("")}</ul>
+          <p class="eyebrow">Main workout — 2 sets each</p>
+          ${exercisesHtml}
+          <p class="eyebrow" style="margin-top:16px;">Cool-down · 2-3 min</p>
+          <ul class="prep-list">${COOLDOWN.map(([name, time]) => `<li><span>${name}</span><span class="prep-time">${time}</span></li>`).join("")}</ul>
+          <p class="eyebrow" style="margin-top:16px;">How to progress</p>
+          <div class="progress-note">${formatDetail(PROGRESSION)}</div>
+        </section>
+
+        <section class="card">
+          <h2>Shopping list — 1 week</h2>
+          <p class="subtitle" style="margin-bottom:16px;">Volatile items (eggs, pork) can swing ±10-15%. Wet markets are usually cheaper. Oats, sauces, and spices last several weeks.</p>
+          ${shoppingHtml}
+          <div class="ref-total"><span>Weekly total</span><span>${SHOPPING_TOTAL.toLocaleString()}₫</span></div>
+          <p class="ref-note">Real food cost / month (~30 days, from daily averages): ~${MONTHLY_FOOD_COST.toLocaleString()}₫. Week one costs more because oats, sauces & spices last several weeks — later weeks are cheaper.</p>
+        </section>
+
+        <section class="card">
+          <h2>Ingredient prices</h2>
+          <p class="subtitle" style="margin-bottom:16px;">How each meal's cost is built. Researched Jul 2026 (Bách Hóa Xanh / Kamereo / HCMC market).</p>
+          ${pricesHtml}
+        </section>
+
+        <p class="footer">Prices and plan researched Jul 2026 — re-check before a big shop.</p>
+      </div>
+
+      <div class="col-side">
+        <p class="eyebrow">This week</p>
+        <div class="stat" style="padding:0; background:transparent; margin-bottom:16px;">
+          <p class="stat-value">12,430 <span style="font-size:14px; color:var(--ink-soft);">kcal</span></p>
+          <p class="stat-label" style="margin-top:2px;">904g protein · 507,000₫ · 7 days</p>
+        </div>
+        <p class="eyebrow">Daily target</p>
+        <p class="subtitle" style="margin-bottom:16px;">~1,850 kcal &middot; ~130g protein &middot; avg ~1,776 kcal actual/day</p>
+        <p class="eyebrow">Remember</p>
+        <p class="subtitle" style="margin:0;">Weigh weekly. Judge the 3-week trend, not any single day.</p>
+      </div>
+    </div>
+  `;
+
+  const saveBtn = app.querySelector("#save-log-btn");
+  if (saveBtn) saveBtn.addEventListener("click", saveTodayEntry);
+}
+
+document.getElementById("signin-btn").addEventListener("click", () => {
+  const err = document.getElementById("auth-error");
+  err.style.display = "none";
+  signIn().catch(e => { err.textContent = "Sign-in failed — " + e.message; err.style.display = ""; });
+});
+
+watchAuth((user) => {
+  document.getElementById("boot-loading").style.display = "none";
+  const gate = document.getElementById("auth-gate");
+  const app = document.getElementById("app");
+  const who = document.getElementById("signed-in-as");
+  if (user) {
+    gate.style.display = "none";
+    app.style.display = "";
+    who.style.display = "";
+    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">Sign out</button>';
+    document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
+    if (!loaded) loadLog();
+  } else {
+    gate.style.display = "";
+    app.style.display = "none";
+    who.style.display = "none";
+    loaded = false;
+  }
+});
+</script>
+</body>
+</html>

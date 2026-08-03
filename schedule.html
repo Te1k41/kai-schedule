@@ -7,112 +7,139 @@
 <title>Daily Timetable</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #10161D;
-    --surface: #171F29;
-    --surface-2: #1E2733;
-    --border: #2A3644;
-    --text: #EDEAE2;
-    --text-dim: #93A1AF;
-    --amber: #E8A548;
-    --amber-dim: rgba(232,165,72,0.14);
-    --teal: #4FB090;
-    --teal-dim: rgba(79,176,144,0.14);
-    --work: #7B93C4;
-    --life: #9C93B5;
-    --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
-    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
+    --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14); --danger: #8A2F20;
+    --cat-work: #2E4A66; --cat-study: #806124; --cat-fitness: #9E3A26; --cat-life: #52603E;
+    --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
+    --font-display: 'Shippori Mincho', Georgia, serif;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-  body { padding: 20px 16px 60px; }
-  .shell { max-width: 640px; margin: 0 auto; }
-  nav.top { max-width: 640px; margin: 0 auto 18px; display: flex; gap: 14px; font-family: var(--font-mono); font-size: 12px; }
-  nav.top a { color: var(--text-dim); text-decoration: none; }
-  nav.top a.current { color: var(--amber); }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); }
+  body {
+    padding: 24px 20px 60px; position: relative; animation: page-in 0.35s ease-out;
+    background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(33,30,26,0.035), transparent 60%);
+  }
+  @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
-  h1 { font-size: 25px; line-height: 1.2; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
-  .subtitle { color: var(--text-dim); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+  .koi-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.07;
+    background-image: url('./assets/koi.jpg'); background-repeat: no-repeat;
+    animation: koi-sway 10s ease-in-out infinite; transform-origin: center;
+  }
+  @keyframes koi-sway { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(0.4deg) scale(1.02); } }
+  @media (orientation: portrait) { .koi-bg { background-size: auto 78vh; background-position: center center; } }
+  @media (orientation: landscape) { .koi-bg { background-size: auto 92vh; background-position: bottom right; } }
+  @media (max-width: 780px) { .koi-bg { opacity: 0.05; } }
 
-  .auth-gate { max-width: 420px; margin: 60px auto; text-align: center; }
+  nav.top, .auth-gate, .signed-in-as, .shell { position: relative; z-index: 1; }
+
+  .shell { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto; }
+  nav.top { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto 24px; display: flex; gap: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  nav.top a { color: var(--ink-soft); text-decoration: none; font-size: clamp(13px, 0.75vw, 16px); font-weight: 700; background-image: linear-gradient(var(--vermillion), var(--vermillion)); background-size: 0% 2px; background-repeat: no-repeat; background-position: left bottom; padding-bottom: 3px; transition: background-size 0.2s ease, color 0.15s ease; }
+  nav.top a:hover { color: var(--ink); background-size: 100% 2px; }
+  nav.top a.current { color: var(--vermillion); }
+
+  .eyebrow { font-size: clamp(12px, 0.65vw, 15px); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vermillion); margin: 0 0 8px; }
+  h1 { font-family: var(--font-display); font-size: clamp(22px, 1.5vw, 32px); line-height: 1.2; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-soft); font-size: clamp(13.5px, 0.8vw, 17px); line-height: 1.5; margin: 0 0 22px; }
+
+  .auth-gate { max-width: 380px; margin: 80px auto; text-align: center; }
   .auth-gate .subtitle { margin: 0 0 22px; }
-  .btn { font-family: var(--font-sans); font-weight: 600; font-size: 14px; border: none; border-radius: 9px; padding: 11px 18px; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; }
+  .btn {
+    font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
+    border: none; background: var(--vermillion); color: var(--paper);
+    padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+  .btn:hover { opacity: 0.88; }
   .btn:active { transform: scale(0.97); }
-  .btn-primary { background: var(--amber); color: #1A1206; }
-  .btn-primary:hover { opacity: 0.92; }
-  .btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-  .auth-error { color: #E88A8A; font-size: 13px; margin-top: 14px; }
-  .signed-in-as { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: right; max-width: 640px; margin: 0 auto 10px; }
-  .signed-in-as button { background: none; border: none; color: var(--text-dim); text-decoration: underline; cursor: pointer; font-family: var(--font-mono); font-size: 11px; padding: 0 0 0 8px; }
+  .btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
+  .auth-error { color: var(--danger); font-size: 13px; margin-top: 14px; }
+  .signed-in-as { font-size: 12.5px; color: var(--ink-soft); text-align: right; max-width: 600px; margin: 0 auto 14px; }
+  .signed-in-as button { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: 12.5px; padding: 0 0 0 10px; }
+  .signed-in-as button:hover { color: var(--ink); }
 
-  .day-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .day-tabs { display: flex; gap: 4px; margin-bottom: 32px; }
   .day-tab {
-    flex: 1; font-family: var(--font-mono); font-size: 11.5px; text-align: center;
-    padding: 9px 2px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-dim); cursor: pointer;
+    flex: 1; font-family: var(--font); font-size: clamp(12.5px, 0.7vw, 15px); font-weight: 700; text-align: center;
+    padding: clamp(10px, 0.7vw, 14px) 2px; min-height: 44px; border-radius: 2px; border: 1px solid transparent; background: transparent; color: var(--ink-soft); cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
-  .day-tab.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); font-weight: 600; }
-  .day-tab.is-today:not(.active) { color: var(--text); }
-  .day-tab:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .day-tab.active { background: var(--vermillion); color: var(--paper); }
+  .day-tab.is-today:not(.active) { color: var(--ink); border-color: var(--border); }
+  .day-tab:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
 
-  .now-card {
-    position: relative; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; padding: 16px 16px 16px 20px; margin-bottom: 20px; overflow: hidden;
+  .layout { display: grid; grid-template-columns: 1fr minmax(220px, clamp(300px, 22vw, 440px)); gap: clamp(56px, 4.5vw, 110px); align-items: start; }
+  .col-side { position: sticky; top: 24px; background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px; padding: 22px 24px; overflow: visible; }
+  .col-main { min-width: 0; }
+
+  .now-clock { font-family: var(--font-mono); font-size: clamp(12px, 0.7vw, 15px); color: var(--ink-soft); margin: 0 0 10px; }
+  .now-clock strong { color: var(--ink); }
+  .now-label { font-size: clamp(11.5px, 0.65vw, 14px); color: var(--ink-soft); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .now-task { font-family: var(--font-display); font-size: clamp(30px, 3.6vw, 60px); line-height: 1.05; font-weight: 600; margin: 0; color: var(--vermillion); letter-spacing: -0.01em; }
+  .now-note { font-size: clamp(13.5px, 0.75vw, 16px); color: var(--ink-soft); margin: 12px 0 0; max-width: 46ch; white-space: pre-line; line-height: 1.5; }
+
+  .preview-tag { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; padding-top: 4px; }
+
+  .block { display: flex; align-items: flex-start; gap: 12px; padding: clamp(12px, 0.8vw, 16px) 10px; margin: 0 -10px; border-bottom: 1px solid var(--border); border-left: 3px solid var(--cat-color, transparent); border-radius: 2px; transition: background-color 0.15s ease; }
+  .block:hover { background: rgba(33,30,26,0.035); }
+  .block:has(input:checked) { animation: check-flash 0.5s ease; }
+  @keyframes check-flash { from { background: rgba(188,65,48,0.1); } to { background: transparent; } }
+  .block.current { border-left-color: var(--vermillion); padding-left: 9px; }
+
+  .block input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 19px; height: 19px; margin-top: 2px;
+    border: 1.5px solid var(--ink-soft); border-radius: 2px; background: transparent; cursor: pointer; position: relative;
+    display: inline-flex; align-items: center; justify-content: center; transition: border-color 0.15s ease, background-color 0.15s ease;
   }
-  .now-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--amber); }
-  .now-clock { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin: 0 0 6px; }
-  .now-clock strong { color: var(--amber); }
-  .now-label { font-size: 12px; color: var(--text-dim); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); }
-  .now-task { font-size: 18px; font-weight: 600; margin: 0; }
-  .now-note { font-size: 13px; color: var(--text-dim); margin: 6px 0 0; }
-
-  .preview-tag { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; }
-
-  .block {
-    display: flex; align-items: flex-start; gap: 12px;
-    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--cat-color, var(--life));
-    border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
-  }
-  .block.interactive { cursor: pointer; }
-  .block.interactive:hover { background: var(--surface-2); }
-  .block.current { background: var(--amber-dim); }
-  .block:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-
-  .checkbox { flex-shrink: 0; width: 19px; height: 19px; border-radius: 6px; border: 1.5px solid var(--text-dim); margin-top: 2px; display: flex; align-items: center; justify-content: center; }
-  .checkbox.checked { background: var(--teal); border-color: var(--teal); }
-  .checkbox svg { width: 11px; height: 11px; display: none; }
-  .checkbox.checked svg { display: block; }
+  .block input[type="checkbox"]:hover { border-color: var(--vermillion); }
+  .block input[type="checkbox"]:checked { background: var(--vermillion); border-color: var(--vermillion); animation: check-pop 0.22s ease; }
+  .block input[type="checkbox"]:checked::after { content: '了'; color: var(--paper); font-size: 12px; font-family: var(--font-display); line-height: 1; }
+  @keyframes check-pop { 50% { transform: scale(1.3); } }
+  .block input[type="checkbox"]:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
 
   .block-body { flex: 1; min-width: 0; }
-  .block-time { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); margin: 0 0 2px; }
-  .block-label { font-size: 14.5px; line-height: 1.4; }
-  .block-label.checked { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--border); }
-  .block-note { font-size: 12.5px; color: var(--text-dim); margin: 4px 0 0; font-style: italic; }
-  .now-badge { font-family: var(--font-mono); font-size: 10px; color: var(--amber); background: var(--amber-dim); padding: 2px 6px; border-radius: 5px; margin-left: 8px; white-space: nowrap; }
+  .block-text { display: block; }
+  label.block-text { cursor: pointer; }
+  label.block-text:hover .block-label { color: var(--vermillion); }
+  .block-time { font-family: var(--font-mono); font-size: clamp(11.5px, 0.65vw, 14px); color: var(--ink-soft); margin: 0 0 2px; }
+  .block-tag { color: var(--cat-color, var(--ink-soft)); font-weight: 700; }
+  .block-tag::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--cat-color, var(--ink-soft)); margin-right: 5px; }
+  .block-label { font-size: clamp(15px, 0.85vw, 18px); line-height: 1.45; transition: color 0.15s ease; }
+  .block-label.checked { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--border); }
+  .block-note { font-size: clamp(13px, 0.7vw, 15px); color: var(--ink-soft); margin: 4px 0 0; white-space: pre-line; line-height: 1.55; }
+  .now-badge { font-size: 10px; color: var(--vermillion); font-weight: 700; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
 
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0 24px; font-size: 12px; color: var(--text-dim); }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-color); }
+  .block-detail { margin-top: 8px; }
+  .block-detail summary { list-style: none; cursor: pointer; font-size: clamp(13.5px, 0.75vw, 16px); color: var(--vermillion); font-weight: 700; }
+  .block-detail summary::-webkit-details-marker { display: none; }
+  .block-detail summary::before { content: '+ Full breakdown'; }
+  .block-detail[open] summary::before { content: '– Full breakdown'; }
+  .detail-body { line-height: 1.75; font-size: clamp(15.5px, 0.95vw, 18px); color: var(--ink); margin: 10px 0 4px; padding: 12px 14px; border-left: 3px solid var(--vermillion); background: var(--paper-deep); }
+  .detail-body .detail-para { margin: 0 0 14px; }
+  .detail-body .detail-para:last-child { margin-bottom: 0; }
+  .detail-body strong { color: var(--vermillion); font-weight: 700; }
 
-  .weekend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-  .weekend-title { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
-  .weekend-sub { font-size: 13.5px; color: var(--text-dim); margin: 0 0 16px; line-height: 1.5; }
-  .weekend-list { margin: 0; padding: 0; list-style: none; }
-  .weekend-list li { font-size: 14px; padding: 9px 0; border-top: 1px solid var(--border); color: var(--text); }
-  .weekend-list li:first-child { border-top: none; }
-  .weekend-list li::before { content: '—'; color: var(--teal); margin-right: 8px; }
+  .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
 
-  .footer { margin-top: 24px; font-size: 12px; color: var(--text-dim); }
-  .save-note::before { content: '●'; color: var(--teal); margin-right: 6px; font-size: 8px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; gap: 20px; }
+    .col-side { position: static; order: -1; }
+  }
 
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
-  <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html" class="current">Schedule</a><a href="./roadmap.html">Roadmap</a></nav>
+  <div class="koi-bg" aria-hidden="true"></div>
+
+  <nav class="top"><a href="./index.html">Home</a><a href="./schedule.html" class="current">Schedule</a><a href="./roadmap.html">Roadmap</a><a href="./health.html">Health</a></nav>
 
   <p class="eyebrow" id="boot-loading" style="text-align:center; margin-top:60px;">Loading…</p>
 
@@ -120,7 +147,7 @@
     <p class="eyebrow">Sign in</p>
     <h1>One tap to sync</h1>
     <p class="subtitle">Sign in with the same Google account on every device and this stays in sync automatically.</p>
-    <button class="btn btn-primary" id="signin-btn">Sign in with Google</button>
+    <button class="btn" id="signin-btn">Sign in with Google</button>
     <p class="auth-error" id="auth-error" style="display:none;"></p>
   </div>
 
@@ -135,42 +162,135 @@ import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-i
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
 
-const WORKOUTS = {
-  Mon: "Home workout — full-body strength (bodyweight)",
-  Tue: "Home workout — cardio / HIIT (20-30 min)",
-  Wed: "Home workout — full-body strength (bodyweight)",
-  Thu: "Home workout — cardio or active recovery",
-  Fri: "Home workout — full-body strength (bodyweight)"
+const FULL_BODY_A_NOTE = "2 sets each, 60-90s rest — Wall push-up · Assisted squat · Glute bridge · Superman hold · Dead bug · Wall sit. ~25 min.";
+const FULL_BODY_A_DETAIL = "Warm-up (2-3 min): march in place 30s · arm circles 20s each way · hip circles 20s each way · 5 slow partial squats · shoulder rolls 15s.\n\nMain — 2 sets each, rest 60-90s:\n1. Wall Push-up — 8-12 reps. Body straight, elbows ~45°, chest near wall.\nEasier: stand closer. Harder: feet back / incline.\n2. Assisted Squat — 8-12 reps. Knees over toes, weight in heels, chest up.\nEasier: more hand support. Harder: free squat, 3s down.\n3. Glute Bridge — 10-15 reps. Drive through heels, squeeze glutes, ribs down.\nEasier: partial lift. Harder: 2-3s pause / single leg.\n4. Superman Hold — 20-30s. Lift with back not neck, eyes down, small lift.\nEasier: chest+arms only. Harder: hold up to 45s.\n5. Dead Bug — 6-8/side. Low back pressed flat, move slow, exhale on extend.\nEasier: legs only. Harder: limbs closer to floor.\n6. Wall Sit — 15-30s. Knees over ankles, back flat on wall, breathe.\nEasier: don't slide as low. Harder: toward 90°, +time.\n\nCool-down (2-3 min): doorway chest stretch 20s · standing quad stretch 20s each · standing hamstring reach 20s · cat-cow x5 · child's pose 30s.\n\nMuscle burn is OK. Sharp or joint pain means stop.\n\nProgress: add reps first, creeping up within the range each session. At the top of the range for 2 weeks straight, move to the harder variation. Log it in the tracker — beat last week's number, even by one rep. Too tired for the full session? Just the warm-up + one set of wall push-ups still counts — it keeps the streak alive.";
+
+const INTERVAL_WALK_NOTE = "30 min brisk walk — get the heart rate up.";
+const INTERVAL_WALK_DETAIL = "A brisk 30 min walk, outdoors if you can. This is a non-lifting training day — the goal is simply a pace that raises your heart rate, not a strict interval structure.";
+
+const LONG_WALK_NOTE = "A longer, easy-paced walk — no rush.";
+const LONG_WALK_DETAIL = "30+ min at an easy, conversational pace. Sunday's walk is about time on your feet, not intensity — a good one for headphones or a podcast.";
+
+const LEARNING_NOTE = "Alternate nights: Security+ study, or a hands-on lab.";
+const LEARNING_DETAIL = "Alternate night to night between two tracks:\n\nDeep study — Professor Messer's free SY0-701 course, in order. Watch one lesson for the current domain, write your own notes, then do the matching practice questions while it's fresh.\nDomain order: 1) General Security Concepts 2) Threats, Vulnerabilities & Mitigations 3) Security Architecture 4) Security Operations 5) Security Program Management. Domains 2 and 4 are the biggest by exam weight.\n\nHands-on labs — continue TryHackMe's SOC Level 1 path from where you left off, or run one LetsDefend alert-triage scenario start to finish. Keep a running doc of what you did — this becomes portfolio write-ups later.\n\nCheck the Roadmap page for exactly what's next.";
+
+const MEALS = {
+  Mon: {
+    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs (150g), 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Steep oats in hot water 5 min; boil eggs; banana on the side." },
+    lunch: { dish: "Rice + boiled chicken breast + water spinach", ingredients: "Rice 150g, chicken breast 200g, water spinach 150g", cal: 550, protein: 52, cost: 20000, prep: "Boil chicken with ginger; dip in salt-pepper-lime." },
+    dinner: { dish: "Rice + tofu in tomato sauce + greens soup", ingredients: "Rice 120g, tofu 200g, 2 tomatoes, mustard greens 100g", cal: 500, protein: 26, cost: 13000, prep: "Simmer tofu in tomato sauce; light greens soup." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat within 30 min after training." }
+  },
+  Tue: {
+    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs both sides, fill baguette; milk on the side." },
+    lunch: { dish: "Rice + braised lean pork + boiled cabbage", ingredients: "Rice 150g, lean pork 180g, cabbage 150g", cal: 560, protein: 44, cost: 27000, prep: "Braise lean pork on low heat; boil cabbage until just done." },
+    dinner: { dish: "Rice + steamed fish + greens", ingredients: "Rice 120g, fish 200g, mustard greens 100g, ginger, scallion", cal: 480, protein: 38, cost: 21000, prep: "Steam fish with ginger and scallion; boil greens." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Protein top-up snack." }
+  },
+  Wed: {
+    breakfast: { dish: "Egg fried rice (light oil)", ingredients: "Cold rice 150g, 3 eggs, scallion, salt", cal: 460, protein: 24, cost: 12500, prep: "Crack eggs straight into rice; toss fast on high heat." },
+    lunch: { dish: "Rice + pan-seared chicken breast + broccoli", ingredients: "Rice 150g, chicken breast 200g, broccoli 150g, garlic", cal: 540, protein: 52, cost: 22000, prep: "Season chicken with salt-pepper-garlic; sear both sides." },
+    dinner: { dish: "Rice noodles + boiled lean pork + herbs", ingredients: "Rice noodles 150g, lean pork 150g, bean sprouts, herbs", cal: 450, protein: 34, cost: 27000, prep: "Slice boiled pork; serve over noodles with herbs and dip." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
+  },
+  Thu: {
+    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs, 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Filling breakfast, steady energy." },
+    lunch: { dish: "Rice + lemongrass chicken thigh (skinless) + water spinach", ingredients: "Rice 150g, chicken thigh 220g (skinless), water spinach 150g", cal: 560, protein: 44, cost: 19000, prep: "Braise chicken with lemongrass; remove skin to cut fat." },
+    dinner: { dish: "Rice + tofu stuffed with pork (steamed) + soup", ingredients: "Rice 120g, tofu 200g, ground pork 80g, mushroom, scallion", cal: 500, protein: 32, cost: 20500, prep: "Hollow tofu, stuff with pork + mushroom, steam 15 min." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon snack." }
+  },
+  Fri: {
+    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs, fill baguette, milk on the side." },
+    lunch: { dish: "Rice + boiled chicken breast + winter melon soup", ingredients: "Rice 150g, chicken breast 200g, winter melon 150g, scallion", cal: 500, protein: 50, cost: 19500, prep: "Boil chicken; light winter melon soup." },
+    dinner: { dish: "Rice + steamed egg-pork loaf + boiled greens", ingredients: "Rice 120g, 3 eggs, ground pork 80g, fish sauce", cal: 500, protein: 34, cost: 22000, prep: "Mix eggs + pork + fish sauce; steam or pan-cook." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
+  },
+  Sat: {
+    breakfast: { dish: "Beef pho (simple homemade)", ingredients: "Pho noodles 150g, lean beef 100g, sprouts, herbs, broth", cal: 450, protein: 28, cost: 33000, prep: "Thin-slice beef; pour hot broth over; add sprouts + herbs." },
+    lunch: { dish: "Rice + black-pepper braised pork + water spinach", ingredients: "Rice 150g, lean pork 180g, water spinach 150g", cal: 560, protein: 44, cost: 28000, prep: "Braise pork with black pepper; boil water spinach." },
+    dinner: { dish: "Rice + sour fish soup (light) + greens", ingredients: "Rice 120g, fish 180g, tomato, pineapple, tamarind, greens", cal: 480, protein: 34, cost: 19500, prep: "Light sour soup, minimal sugar; serve with greens." },
+    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Snack." }
+  },
+  Sun: {
+    breakfast: { dish: "Chicken sticky rice (light portion)", ingredients: "Glutinous rice 100g, chicken breast 120g, fried shallots, fish sauce", cal: 480, protein: 30, cost: 13000, prep: "Steam sticky rice; shred boiled chicken on top; keep portion modest." },
+    lunch: { dish: "Rice + pan-seared chicken breast + salad", ingredients: "Rice 150g, chicken breast 200g, lettuce, tomato, cucumber", cal: 520, protein: 52, cost: 21000, prep: "Sear chicken; serve with fresh salad + lime." },
+    dinner: { dish: "Rice + tofu braised with egg + cabbage", ingredients: "Rice 120g, tofu 150g, 2 eggs, cabbage", cal: 480, protein: 28, cost: 15000, prep: "Braise tofu with egg; season fish sauce-sugar-scallion." },
+    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon / post-workout snack." }
+  }
 };
 
+function mealBlock(meal, slot) {
+  return {
+    label: `${slot}: ${meal.dish}`,
+    note: `${meal.cal} kcal · ${meal.protein}g protein · ${meal.cost.toLocaleString()}₫`,
+    detail: `Ingredients: ${meal.ingredients}\n\n${meal.prep}`
+  };
+}
+
+const TRAIN_DAYS = new Set(["Mon", "Wed", "Fri"]);
+
 function weekdayTemplate(day) {
+  const m = MEALS[day];
+  const snackBlock = mealBlock(m.snack, "Snack");
+  const trainingBlock = TRAIN_DAYS.has(day)
+    ? { cat: "fitness", label: "Full-Body A — bodyweight workout", note: FULL_BODY_A_NOTE, detail: FULL_BODY_A_DETAIL }
+    : { cat: "fitness", label: "Interval walk", note: INTERVAL_WALK_NOTE, detail: INTERVAL_WALK_DETAIL };
   return [
-    { start: "06:30", end: "07:10", cat: "fitness", label: WORKOUTS[day] },
-    { start: "07:10", end: "07:35", cat: "life", label: "Shower & get ready" },
-    { start: "07:35", end: "08:00", cat: "life", label: "Breakfast" },
-    { start: "08:00", end: "12:00", cat: "work", label: "Work block 1" },
-    { start: "12:00", end: "12:30", cat: "life", label: "Lunch" },
-    { start: "12:30", end: "13:00", cat: "study", label: "Light review — flashcards / practice questions" },
-    { start: "13:00", end: "17:00", cat: "work", label: "Work block 2" },
-    { start: "17:00", end: "17:30", cat: "life", label: "Decompress", note: "A real break. Not scrolling, not planning. Just stop." },
-    { start: "17:30", end: "19:00", cat: "study", label: "Deep study — Security+ roadmap" },
-    { start: "19:00", end: "19:45", cat: "life", label: "Dinner" },
-    { start: "19:45", end: "20:30", cat: "study", label: "Hands-on labs — TryHackMe / LetsDefend" },
-    { start: "20:30", end: "21:30", cat: "life", label: "Free time" },
-    { start: "21:30", end: "22:00", cat: "life", label: "Wind-down — screens off" },
-    { start: "22:00", end: "23:59", cat: "life", label: "Sleep", note: "Phone down. Tomorrow's you will thank tonight's you." }
+    { start: "06:45", end: "07:15", cat: "life", label: "Wake + intention" },
+    { start: "07:15", end: "07:45", cat: "life", ...mealBlock(m.breakfast, "Breakfast") },
+    { start: "07:45", end: "08:00", cat: "life", label: "Commute" },
+    { start: "08:00", end: "12:00", cat: "work", label: "Work", ...(day === "Mon" ? { note: "Take a 2 min break each hour." } : {}) },
+    { start: "12:00", end: "13:00", cat: "life", ...mealBlock(m.lunch, "Lunch"), label: `Lunch + walk: ${m.lunch.dish}` },
+    { start: "13:00", end: "17:00", cat: "work", label: "Work" },
+    { start: "17:00", end: "17:30", cat: "life", ...snackBlock, note: `${snackBlock.note} · pre-workout` },
+    { start: "17:30", end: "18:30", cat: "life", label: "Commute / out" },
+    { start: "18:30", end: "19:00", ...trainingBlock },
+    { start: "19:00", end: "19:30", cat: "life", ...mealBlock(m.dinner, "Dinner") },
+    { start: "19:30", end: "20:30", cat: "study", label: "Learning — Security+ or hands-on labs", note: LEARNING_NOTE, detail: LEARNING_DETAIL },
+    { start: "20:30", end: "22:30", cat: "life", label: "Free time" },
+    { start: "22:30", end: "23:00", cat: "life", label: "Wind-down — screens off" },
+    { start: "23:00", end: "06:45", cat: "life", label: "Sleep", note: "8 hours. Phone down — tomorrow's you will thank tonight's you." }
   ];
 }
 
-const WEEKEND_IDEAS = [
-  "Longer workout or a walk, if you feel like it",
-  "Catch up on labs if you fell behind — totally optional",
-  "Meal prep for the week ahead",
-  "Rest. Actual rest counts as productive here."
-];
+function weekendTemplate(day) {
+  const m = MEALS[day];
+  if (day === "Sat") {
+    return [
+      { start: "06:45", end: "07:15", cat: "life", label: "Wake" },
+      { start: "07:15", end: "07:45", cat: "life", ...mealBlock(m.breakfast, "Breakfast") },
+      { start: "07:45", end: "08:00", cat: "life", label: "Free time" },
+      { start: "08:00", end: "12:00", cat: "life", label: "Chores / project" },
+      { start: "12:00", end: "13:00", cat: "life", ...mealBlock(m.lunch, "Lunch") },
+      { start: "13:00", end: "17:00", cat: "life", label: "Project / learning" },
+      { start: "17:00", end: "17:30", cat: "life", label: "Meal prep" },
+      { start: "17:30", end: "18:00", cat: "life", label: "Free time" },
+      { start: "18:00", end: "18:30", cat: "fitness", label: "Interval walk", note: INTERVAL_WALK_NOTE, detail: INTERVAL_WALK_DETAIL },
+      { start: "18:30", end: "19:00", cat: "life", ...mealBlock(m.dinner, "Dinner") },
+      { start: "19:00", end: "22:30", cat: "life", label: "Free time" },
+      { start: "22:30", end: "23:00", cat: "life", label: "Wind-down — screens off" },
+      { start: "23:00", end: "06:45", cat: "life", label: "Sleep", note: "8 hours. Phone down — tomorrow's you will thank tonight's you." }
+    ];
+  }
+  return [
+    { start: "06:45", end: "07:15", cat: "life", label: "Wake" },
+    { start: "07:15", end: "07:45", cat: "life", ...mealBlock(m.breakfast, "Breakfast") },
+    { start: "07:45", end: "08:00", cat: "life", label: "Free time" },
+    { start: "08:00", end: "12:00", cat: "life", label: "Rest / weekly review", note: "Weigh in and log it — judge the 3-week trend, not any single day." },
+    { start: "12:00", end: "13:00", cat: "life", ...mealBlock(m.lunch, "Lunch") },
+    { start: "13:00", end: "17:30", cat: "life", label: "Meal prep — 15 boxes", note: "Cook and portion meals for the week ahead into containers." },
+    { start: "17:30", end: "18:00", cat: "life", label: "Free time" },
+    { start: "18:00", end: "18:30", cat: "fitness", label: "Long walk", note: LONG_WALK_NOTE, detail: LONG_WALK_DETAIL },
+    { start: "18:30", end: "19:00", cat: "life", ...mealBlock(m.dinner, "Dinner") },
+    { start: "19:00", end: "20:30", cat: "life", label: "Free time" },
+    { start: "20:30", end: "22:30", cat: "life", label: "Prep for the week", note: "Lay out clothes, check the Roadmap, get ahead of Monday." },
+    { start: "22:30", end: "23:00", cat: "life", label: "Wind-down — screens off" },
+    { start: "23:00", end: "06:45", cat: "life", label: "Sleep", note: "8 hours. Phone down — tomorrow's you will thank tonight's you." }
+  ];
+}
 
-const CAT_COLORS = { work: "var(--work)", study: "var(--amber)", fitness: "var(--teal)", life: "var(--life)" };
-const CAT_LABELS = { work: "Work", study: "Study", fitness: "Training", life: "Life" };
+const CAT_TAGS = { work: "Work", study: "Study", fitness: "Train", life: "Life" };
+const CAT_COLOR_VARS = { work: "var(--cat-work)", study: "var(--cat-study)", fitness: "var(--cat-fitness)", life: "var(--cat-life)" };
 
 const STORAGE_KEY = "schedule-today";
 let checked = {};
@@ -215,6 +335,17 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+function formatDetail(text) {
+  return text.split("\n\n").map(chunk => {
+    const html = escapeHtml(chunk)
+      .replace(/^(\d+\.\s+[^—\n]+)(—)/gm, "<strong>$1</strong>$2")
+      .replace(/^(\d+\.)(\s)/gm, "<strong>$1</strong>$2")
+      .replace(/\b([A-Z][A-Za-z]*(?:\s[a-z]+)?:)(?=\s|$)/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>");
+    return `<p class="detail-para">${html}</p>`;
+  }).join("");
+}
+
 function render() {
   const app = document.getElementById("app");
   if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
@@ -226,85 +357,81 @@ function render() {
     <button class="day-tab${d===selectedDay ? " active" : ""}${d===todayAbbrev() ? " is-today" : ""}" data-action="select-day" data-day="${d}">${d}</button>
   `).join("");
 
-  let mainHtml = "";
+  let leftHtml = "";
+  let rightHtml = "";
 
-  if (isWeekend) {
-    mainHtml = `
-      <div class="weekend-card">
-        <p class="weekend-title">${DAY_FULL[selectedDay]} is open</p>
-        <p class="weekend-sub">No fixed blocks on weekends — that was the plan. A few optional ideas if you want structure, but skipping all of them is a valid choice too.</p>
-        <ul class="weekend-list">
-          ${WEEKEND_IDEAS.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
-        </ul>
+  const blocks = isWeekend ? weekendTemplate(selectedDay) : weekdayTemplate(selectedDay);
+  const nm = nowMinutes();
+  const current = isToday ? blocks.find(b => {
+    const s = toMinutes(b.start), e = toMinutes(b.end);
+    return e <= s ? (nm >= s || nm < e) : (nm >= s && nm < e);
+  }) : null;
+
+  if (isToday) {
+    leftHtml = `
+      <div class="now">
+        <p class="now-clock">It's <strong>${nowClockStr()}</strong></p>
+        <p class="now-label">You should be in</p>
+        <p class="now-task">${current ? escapeHtml(current.label) : "A quiet gap"}</p>
+        ${current && current.note ? `<p class="now-note">${escapeHtml(current.note)}</p>` : ""}
       </div>
     `;
   } else {
-    const blocks = weekdayTemplate(selectedDay);
-    const nm = nowMinutes();
-    const current = isToday ? blocks.find(b => nm >= toMinutes(b.start) && nm < toMinutes(b.end)) : null;
+    leftHtml = `<p class="preview-tag">Previewing ${DAY_FULL[selectedDay]}</p>`;
+  }
 
-    if (isToday) {
-      mainHtml += `
-        <div class="now-card">
-          <p class="now-clock">It's <strong>${nowClockStr()}</strong></p>
-          <p class="now-label">You should be in</p>
-          <p class="now-task">${current ? escapeHtml(current.label) : "A quiet gap — nothing scheduled"}</p>
-          ${current && current.note ? `<p class="now-note">${escapeHtml(current.note)}</p>` : ""}
-        </div>
-      `;
-    } else {
-      mainHtml += `<p class="preview-tag">Previewing ${DAY_FULL[selectedDay]}</p>`;
-    }
-
-    mainHtml += blocks.map(b => {
-      const isCurrent = current && b.start === current.start;
-      const isChecked = isToday && !!checked[b.start];
-      const interactive = isToday;
-      return `
-        <div class="block${isCurrent ? " current" : ""}${interactive ? " interactive" : ""}"
-             style="--cat-color:${CAT_COLORS[b.cat]}"
-             ${interactive ? `role="checkbox" aria-checked="${isChecked}" tabindex="0" data-action="toggle-block" data-start="${b.start}"` : ""}>
-          ${interactive ? `<span class="checkbox${isChecked ? " checked" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="#0C1712" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>` : ""}
-          <div class="block-body">
-            <p class="block-time">${b.start}–${b.end}${isCurrent ? '<span class="now-badge">NOW</span>' : ""}</p>
-            <p class="block-label${isChecked ? " checked" : ""}">${escapeHtml(b.label)}</p>
-            ${b.note ? `<p class="block-note">${escapeHtml(b.note)}</p>` : ""}
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    mainHtml += `
-      <div class="legend">
-        ${Object.keys(CAT_LABELS).map(c => `<span class="legend-item"><span class="legend-dot" style="--dot-color:${CAT_COLORS[c]}"></span>${CAT_LABELS[c]}</span>`).join("")}
+  rightHtml = blocks.map(b => {
+    const isCurrent = current && b.start === current.start;
+    const isChecked = isToday && !!checked[b.start];
+    const interactive = isToday;
+    const id = `chk-${b.start}`;
+    const textInner = `
+      <p class="block-time"><span class="block-tag">${CAT_TAGS[b.cat]}</span> · ${b.start}–${b.end}${isCurrent ? '<span class="now-badge">Now</span>' : ""}</p>
+      <p class="block-label${isChecked ? " checked" : ""}">${escapeHtml(b.label)}</p>
+    `;
+    const textHtml = interactive
+      ? `<label class="block-text" for="${id}">${textInner}</label>`
+      : `<div class="block-text">${textInner}</div>`;
+    const noteHtml = b.note ? `<p class="block-note">${escapeHtml(b.note)}</p>` : "";
+    const detailHtml = b.detail ? `
+      <details class="block-detail">
+        <summary></summary>
+        <div class="detail-body">${formatDetail(b.detail)}</div>
+      </details>
+    ` : "";
+    const checkboxHtml = interactive ? `<input type="checkbox" id="${id}" data-action="toggle-block" data-start="${b.start}" ${isChecked ? "checked" : ""} />` : "";
+    return `
+      <div class="block${isCurrent ? " current" : ""}" style="--cat-color:${CAT_COLOR_VARS[b.cat]}">
+        ${checkboxHtml}
+        <div class="block-body">${textHtml}${noteHtml}${detailHtml}</div>
       </div>
     `;
-  }
+  }).join("");
 
   app.innerHTML = `
     <p class="eyebrow">Schedule</p>
     <h1>Your Weekday Timetable</h1>
-    <p class="subtitle">Same structure every weekday. Weekends stay open.</p>
+    <p class="subtitle">Job, training, meals, and rest — every day of the week, mapped out.</p>
     <div class="day-tabs">${tabsHtml}</div>
-    ${mainHtml}
-    <p class="footer"><span class="save-note">Today's checks save automatically</span></p>
+    <div class="layout">
+      <div class="col-main">${rightHtml}</div>
+      <div class="col-side">${leftHtml}</div>
+    </div>
+    <p class="footer">Today's checks save automatically</p>
   `;
 
   app.querySelectorAll('[data-action="select-day"]').forEach(el => {
     el.addEventListener("click", () => { selectedDay = el.getAttribute("data-day"); render(); });
   });
   app.querySelectorAll('[data-action="toggle-block"]').forEach(el => {
-    el.addEventListener("click", () => toggleBlock(el.getAttribute("data-start")));
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBlock(el.getAttribute("data-start")); }
-    });
+    el.addEventListener("change", () => toggleBlock(el.getAttribute("data-start")));
   });
 }
 
 document.getElementById("signin-btn").addEventListener("click", () => {
   const err = document.getElementById("auth-error");
   err.style.display = "none";
-  signIn().catch(e => { err.textContent = e.message; err.style.display = ""; });
+  signIn().catch(e => { err.textContent = "Sign-in failed — " + e.message; err.style.display = ""; });
 });
 
 watchAuth((user) => {
@@ -316,7 +443,7 @@ watchAuth((user) => {
     gate.style.display = "none";
     app.style.display = "";
     who.style.display = "";
-    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">sign out</button>';
+    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">Sign out</button>';
     document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
     if (!loaded) loadState();
   } else {

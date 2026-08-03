@@ -7,43 +7,105 @@
 <title>Kai's Ops</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #10161D; --surface: #171F29; --border: #2A3644;
-    --text: #EDEAE2; --text-dim: #93A1AF; --amber: #E8A548; --amber-dim: rgba(232,165,72,0.14); --teal: #4FB090;
-    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
+    --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14);
+    --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-display: 'Shippori Mincho', Georgia, serif;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); }
-  body { padding: 20px 16px 60px; }
-  .shell { max-width: 480px; margin: 80px auto 0; }
-  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
-  h1 { font-size: 26px; margin: 0 0 8px; font-weight: 700; }
-  .subtitle { color: var(--text-dim); font-size: 14px; margin: 0 0 28px; line-height: 1.5; }
-  .card {
-    display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 18px; margin-bottom: 10px; text-decoration: none; color: var(--text);
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); }
+  body {
+    min-height: 100vh; display: flex; align-items: center; padding: 40px 24px; position: relative; overflow-x: hidden;
+    animation: page-in 0.4s ease-out;
+    background-image: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(33,30,26,0.035), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 85%, rgba(33,30,26,0.03), transparent 60%);
   }
-  .card:hover { border-color: var(--amber); }
-  .card-title { font-size: 15.5px; font-weight: 600; margin: 0 0 3px; }
-  .card-sub { font-size: 12.5px; color: var(--text-dim); font-family: var(--font-mono); }
+  @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .koi-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.07;
+    background-image: url('./assets/koi.jpg'); background-repeat: no-repeat;
+    animation: koi-sway 10s ease-in-out infinite; transform-origin: center;
+  }
+  @keyframes koi-sway { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(0.4deg) scale(1.02); } }
+  @media (orientation: portrait) { .koi-bg { background-size: auto 78vh; background-position: center center; } }
+  @media (orientation: landscape) { .koi-bg { background-size: auto 92vh; background-position: bottom right; } }
+
+  .shell { max-width: clamp(920px, 74vw, 1880px); width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .layout { display: grid; grid-template-columns: minmax(220px, clamp(300px, 22vw, 440px)) 1fr; gap: clamp(72px, 6vw, 140px); align-items: center; }
+  .eyebrow { font-size: clamp(12px, 0.7vw, 15px); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vermillion); margin: 0 0 14px; }
+  h1 { font-family: var(--font-display); font-size: clamp(48px, 6vw, 110px); line-height: 0.95; margin: 0 0 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-soft); font-size: clamp(14px, 0.9vw, 18px); margin: 0; line-height: 1.6; max-width: 32ch; }
+
+  .links { display: flex; flex-direction: column; gap: 12px; }
+  .link-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding: clamp(22px, 1.8vw, 32px) clamp(20px, 1.6vw, 28px); text-decoration: none; color: var(--ink);
+    background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .link-row:hover { border-color: var(--vermillion); transform: translateY(-2px); }
+  .link-row:hover .link-title { color: var(--vermillion); }
+  .link-row:hover .arrow { transform: translateX(4px); }
+  .link-row:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 4px; }
+  .link-text { display: flex; flex-direction: column; gap: 4px; }
+  .link-title { font-family: var(--font-display); font-size: clamp(24px, 1.6vw, 34px); font-weight: 600; letter-spacing: -0.01em; transition: color 0.15s ease; }
+  .link-sub { font-size: clamp(13px, 0.85vw, 16px); color: var(--ink-soft); }
+  .arrow { color: var(--vermillion); font-size: clamp(20px, 1.3vw, 28px); flex-shrink: 0; transition: transform 0.15s ease; }
+  @media (prefers-reduced-motion: reduce) { .arrow, .link-row:hover { transition: none; transform: none; } }
+
+  .footer { margin-top: 28px; font-size: clamp(12.5px, 0.75vw, 15px); color: var(--ink-soft); }
+
+  @media (max-width: 780px) {
+    body { display: block; min-height: auto; padding: 24px 20px 60px; }
+    .shell { margin: 90px auto 0; }
+    .layout { grid-template-columns: 1fr; gap: 8px; }
+    .subtitle { margin-bottom: 8px; }
+    .koi-bg { opacity: 0.055; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
+  <div class="koi-bg" aria-hidden="true"></div>
+
   <div class="shell">
-    <p class="eyebrow">Kai // Ops</p>
-    <h1>Pick one</h1>
-    <p class="subtitle">Synced across every device you sign into with the same Google account.</p>
-    <a class="card" href="./schedule.html">
-      <p class="card-title">Daily Timetable</p>
-      <p class="card-sub">Live "what should I be doing now" view</p>
-    </a>
-    <a class="card" href="./roadmap.html">
-      <p class="card-title">SOC Analyst Roadmap</p>
-      <p class="card-sub">35 tasks, 5 phases, zero to job-ready</p>
-    </a>
+    <div class="layout">
+      <div>
+        <p class="eyebrow">Kai</p>
+        <h1>Pick one</h1>
+        <p class="subtitle">Synced across every device you sign into with the same Google account.</p>
+      </div>
+      <div class="links">
+        <a class="link-row" href="./schedule.html">
+          <span class="link-text">
+            <span class="link-title">Daily Timetable</span>
+            <span class="link-sub">Live "what should I be doing now" view</span>
+          </span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a class="link-row" href="./roadmap.html">
+          <span class="link-text">
+            <span class="link-title">SOC Analyst Roadmap</span>
+            <span class="link-sub">35 tasks, 5 phases, zero to job-ready</span>
+          </span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a class="link-row" href="./health.html">
+          <span class="link-text">
+            <span class="link-title">Health &amp; Fitness</span>
+            <span class="link-sub">Meal plan, workout, and daily log — Phase 2</span>
+          </span>
+          <span class="arrow">&rarr;</span>
+        </a>
+      </div>
+    </div>
+    <p class="footer">Hosted on GitHub Pages</p>
   </div>
 </body>
 </html>
