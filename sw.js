@@ -1,4 +1,4 @@
-const CACHE = "kai-ops-v3";
+const CACHE = "kai-ops-v4";
 const SHELL = [
   "./index.html", "./schedule.html", "./roadmap.html", "./health.html", "./finance.html", "./offline.html",
   "./now.html", "./money.html",
@@ -20,10 +20,17 @@ self.addEventListener("message", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
-      return fetch(e.request).catch(() => {
+      return fetch(e.request).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => {
         if (e.request.mode === "navigate") return caches.match("./offline.html");
         return cached;
       });
