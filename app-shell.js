@@ -33,8 +33,11 @@ export function initAuthUI({ onSignedIn, onSignedOut } = {}) {
       gate.style.display = "none";
       app.style.display = "";
       who.style.display = "";
-      who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">Sign out</button>';
+      who.innerHTML = escapeHtml(user.email || user.displayName || "signed in")
+        + '<button id="signout-btn">Sign out</button>'
+        + '<button id="force-refresh-btn" title="Clear cache and reload the app fresh">Refresh app</button>';
       document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
+      document.getElementById("force-refresh-btn").addEventListener("click", forceRefresh);
       if (onSignedIn) onSignedIn(user);
     } else {
       gate.style.display = "";
@@ -43,6 +46,21 @@ export function initAuthUI({ onSignedIn, onSignedOut } = {}) {
       if (onSignedOut) onSignedOut();
     }
   });
+}
+
+export async function forceRefresh() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } finally {
+    location.reload();
+  }
 }
 
 let toastTimer = null;
