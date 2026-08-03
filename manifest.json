@@ -13,6 +13,8 @@
   ],
   "shortcuts": [
     { "name": "Now", "url": "./schedule.html", "description": "What should I be doing now" },
-    { "name": "Log expense", "url": "./finance.html#log-expense", "description": "Quickly log a spend" }
+    { "name": "Log expense", "url": "./finance.html#log-expense", "description": "Quickly log a spend" },
+    { "name": "Roadmap", "url": "./roadmap.html", "description": "SOC analyst roadmap progress" },
+    { "name": "Health", "url": "./health.html", "description": "Today's log and meal plan" }
   ]
 }

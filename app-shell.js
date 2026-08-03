@@ -47,7 +47,7 @@ export function initAuthUI({ onSignedIn, onSignedOut } = {}) {
 
 let toastTimer = null;
 
-export function showToast(message, variant = "error") {
+export function showToast(message, variant = "error", { persist = false } = {}) {
   let el = document.getElementById("app-toast");
   if (!el) {
     el = document.createElement("div");
@@ -59,7 +59,7 @@ export function showToast(message, variant = "error") {
   el.textContent = message;
   el.style.display = "";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.style.display = "none"; }, 5000);
+  if (!persist) toastTimer = setTimeout(() => { el.style.display = "none"; }, 5000);
   return el;
 }
 

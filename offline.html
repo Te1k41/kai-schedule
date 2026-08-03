@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>Offline — Kai's Ops</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#9E3A26">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<link rel="stylesheet" href="./shared.css">
+<style>
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .shell { max-width: 420px; }
+  h1 { font-family: var(--font-display); font-size: clamp(28px, 3vw, 42px); line-height: 1.2; margin: 0 0 10px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-soft); font-size: var(--fs-base); line-height: 1.6; margin: 0 0 24px; }
+</style>
+</head>
+<body>
+  <div class="koi-bg" aria-hidden="true"></div>
+
+  <div class="shell">
+    <p class="eyebrow">Offline</p>
+    <h1>No connection</h1>
+    <p class="subtitle">This page isn't cached yet. Reconnect and try again — anything you already opened before still works offline.</p>
+    <a class="btn" href="./index.html">Back home</a>
+  </div>
+<script src="./pwa-init.js"></script>
+</body>
+</html>
