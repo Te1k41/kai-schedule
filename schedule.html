@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <title>Daily Timetable</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#9E3A26">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kai Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -82,6 +88,12 @@
   .now-label { font-size: clamp(11.5px, 0.65vw, 14px); color: var(--ink-soft); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
   .now-task { font-family: var(--font-display); font-size: clamp(30px, 3.6vw, 60px); line-height: 1.05; font-weight: 600; margin: 0; color: var(--vermillion); letter-spacing: -0.01em; }
   .now-note { font-size: clamp(13.5px, 0.75vw, 16px); color: var(--ink-soft); margin: 12px 0 0; max-width: 46ch; white-space: pre-line; line-height: 1.5; }
+  .now-detail-btn {
+    font-family: var(--font); font-weight: 700; font-size: clamp(13px, 0.75vw, 15px); border-radius: 2px;
+    border: 1px solid var(--vermillion); background: transparent; color: var(--vermillion);
+    padding: 8px 16px; margin-top: 16px; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .now-detail-btn:hover { background: var(--vermillion); color: var(--paper); }
 
   .preview-tag { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; padding-top: 4px; }
 
@@ -374,6 +386,7 @@ function render() {
         <p class="now-label">You should be in</p>
         <p class="now-task">${current ? escapeHtml(current.label) : "A quiet gap"}</p>
         ${current && current.note ? `<p class="now-note">${escapeHtml(current.note)}</p>` : ""}
+        ${current && current.detail ? `<button class="now-detail-btn" data-action="jump-to-detail" data-start="${current.start}" type="button">See details &darr;</button>` : ""}
       </div>
     `;
   } else {
@@ -394,7 +407,7 @@ function render() {
       : `<div class="block-text">${textInner}</div>`;
     const noteHtml = b.note ? `<p class="block-note">${escapeHtml(b.note)}</p>` : "";
     const detailHtml = b.detail ? `
-      <details class="block-detail">
+      <details class="block-detail" id="detail-${b.start}">
         <summary></summary>
         <div class="detail-body">${formatDetail(b.detail)}</div>
       </details>
@@ -426,6 +439,14 @@ function render() {
   app.querySelectorAll('[data-action="toggle-block"]').forEach(el => {
     el.addEventListener("change", () => toggleBlock(el.getAttribute("data-start")));
   });
+  app.querySelectorAll('[data-action="jump-to-detail"]').forEach(el => {
+    el.addEventListener("click", () => {
+      const det = document.getElementById(`detail-${el.getAttribute("data-start")}`);
+      if (!det) return;
+      det.open = true;
+      det.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
 }
 
 document.getElementById("signin-btn").addEventListener("click", () => {
@@ -456,5 +477,6 @@ watchAuth((user) => {
 
 setInterval(() => { if (loaded) render(); }, 30000);
 </script>
+<script src="./pwa-init.js"></script>
 </body>
 </html>

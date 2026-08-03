@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <title>Finance</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#9E3A26">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kai Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -185,6 +191,7 @@ let data = { income: [], expenses: [], budgets: {}, goals: [] };
 let loaded = false;
 let rate = { usdToVnd: null, updatedAt: null };
 let markupPct = Number(localStorage.getItem("finance-usd-markup") ?? 11.7);
+let handledHash = false;
 
 function effectiveRate() { return rate.usdToVnd ? rate.usdToVnd * (1 + markupPct / 100) : null; }
 
@@ -554,7 +561,7 @@ function render() {
           ${incomeHtml}
         </section>
 
-        <section class="card">
+        <section class="card" id="log-expense">
           <h2>Log expense</h2>
           <div class="log-form">
             <div class="log-field"><label for="exp-date">Date</label><input type="date" id="exp-date" value="${todayDateStr()}" /></div>
@@ -639,6 +646,16 @@ function render() {
       goalVndInput.value = usd ? Math.round(usd * effectiveRate()) : "";
     });
   }
+
+  if (!handledHash && location.hash === "#log-expense") {
+    handledHash = true;
+    requestAnimationFrame(() => {
+      const section = document.getElementById("log-expense");
+      if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+      const amt = document.getElementById("exp-amount");
+      if (amt) amt.focus();
+    });
+  }
 }
 
 document.getElementById("signin-btn").addEventListener("click", () => {
@@ -671,5 +688,6 @@ watchAuth((user) => {
   }
 });
 </script>
+<script src="./pwa-init.js"></script>
 </body>
 </html>
