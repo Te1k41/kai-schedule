@@ -86,6 +86,13 @@
   .converter-equiv li { margin: 0 0 4px; }
 
   .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
+
+  @media (max-width: 860px) {
+    .card-hero .log-field.amount input {
+      font-family: var(--font-display); font-size: clamp(28px, 9vw, 40px); font-weight: 600;
+      color: var(--vermillion); padding: 6px 10px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -450,6 +457,48 @@ function render() {
           </div>
         </section>
 
+        <section class="card card-hero" id="log-expense">
+          <h2>Log expense</h2>
+          <div class="log-form">
+            <div class="log-field"><label for="exp-date">Date</label><input type="date" id="exp-date" value="${todayDateStr()}" /></div>
+            <div class="log-field"><label for="exp-category">Category</label>
+              <select id="exp-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
+            </div>
+            <div class="log-field"><label for="exp-account">From account</label><select id="exp-account">${accountOptionsHtml()}</select></div>
+            <div class="log-field amount"><label for="exp-amount">Amount (VND)</label><input type="number" id="exp-amount" placeholder="0" /></div>
+            <div class="log-field wide"><label for="exp-note">Note</label><input type="text" id="exp-note" placeholder="optional" /></div>
+          </div>
+          <div class="log-save-row"><button class="btn" id="add-expense-btn" type="button">Add expense</button></div>
+          <p class="eyebrow" style="margin-bottom:10px;">Recent expenses</p>
+          ${expenseHtml}
+        </section>
+
+        <section class="card card-hero">
+          <h2>Log income</h2>
+          <div class="log-form">
+            <div class="log-field"><label for="inc-date">Date</label><input type="date" id="inc-date" value="${todayDateStr()}" /></div>
+            <div class="log-field"><label for="inc-source">Source</label><input type="text" id="inc-source" placeholder="Salary, freelance..." /></div>
+            <div class="log-field"><label for="inc-account">Into account</label><select id="inc-account">${accountOptionsHtml()}</select></div>
+            <div class="log-field amount"><label for="inc-amount">Amount (VND)</label><input type="number" id="inc-amount" placeholder="0" /></div>
+          </div>
+          <div class="log-save-row"><button class="btn" id="add-income-btn" type="button">Add income</button></div>
+          <p class="eyebrow" style="margin-bottom:10px;">Recent income</p>
+          ${incomeHtml}
+        </section>
+
+        <section class="card">
+          <h2>Savings goals</h2>
+          ${goalsHtml}
+          <p class="eyebrow" style="margin:20px 0 10px;">Add a goal</p>
+          <div class="log-form">
+            <div class="log-field wide"><label for="goal-name">Name</label><input type="text" id="goal-name" placeholder="e.g. Security+ Voucher" /></div>
+            <div class="log-field"><label for="goal-target-usd">Target (USD)</label><input type="number" id="goal-target-usd" placeholder="optional" /></div>
+            <div class="log-field"><label for="goal-target">Target (VND)</label><input type="number" id="goal-target" placeholder="0" /></div>
+            <div class="log-field"><label for="goal-saved">Saved (VND)</label><input type="number" id="goal-saved" placeholder="0" /></div>
+          </div>
+          <div class="log-save-row"><button class="btn" id="add-goal-btn" type="button">Add goal</button></div>
+        </section>
+
         <section class="card">
           <h2>Accounts</h2>
           <p class="subtitle" style="margin-bottom:12px;">Where the money actually sits (Card, Cash, Bank...). Balance = starting balance + income tagged to it − expenses tagged to it.</p>
@@ -482,48 +531,6 @@ function render() {
             <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="number" id="sub-amount" placeholder="0" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
-        </section>
-
-        <section class="card">
-          <h2>Log income</h2>
-          <div class="log-form">
-            <div class="log-field"><label for="inc-date">Date</label><input type="date" id="inc-date" value="${todayDateStr()}" /></div>
-            <div class="log-field"><label for="inc-source">Source</label><input type="text" id="inc-source" placeholder="Salary, freelance..." /></div>
-            <div class="log-field"><label for="inc-account">Into account</label><select id="inc-account">${accountOptionsHtml()}</select></div>
-            <div class="log-field"><label for="inc-amount">Amount (VND)</label><input type="number" id="inc-amount" placeholder="0" /></div>
-          </div>
-          <div class="log-save-row"><button class="btn" id="add-income-btn" type="button">Add income</button></div>
-          <p class="eyebrow" style="margin-bottom:10px;">Recent income</p>
-          ${incomeHtml}
-        </section>
-
-        <section class="card" id="log-expense">
-          <h2>Log expense</h2>
-          <div class="log-form">
-            <div class="log-field"><label for="exp-date">Date</label><input type="date" id="exp-date" value="${todayDateStr()}" /></div>
-            <div class="log-field"><label for="exp-category">Category</label>
-              <select id="exp-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
-            </div>
-            <div class="log-field"><label for="exp-account">From account</label><select id="exp-account">${accountOptionsHtml()}</select></div>
-            <div class="log-field"><label for="exp-amount">Amount (VND)</label><input type="number" id="exp-amount" placeholder="0" /></div>
-            <div class="log-field wide"><label for="exp-note">Note</label><input type="text" id="exp-note" placeholder="optional" /></div>
-          </div>
-          <div class="log-save-row"><button class="btn" id="add-expense-btn" type="button">Add expense</button></div>
-          <p class="eyebrow" style="margin-bottom:10px;">Recent expenses</p>
-          ${expenseHtml}
-        </section>
-
-        <section class="card">
-          <h2>Savings goals</h2>
-          ${goalsHtml}
-          <p class="eyebrow" style="margin:20px 0 10px;">Add a goal</p>
-          <div class="log-form">
-            <div class="log-field wide"><label for="goal-name">Name</label><input type="text" id="goal-name" placeholder="e.g. Security+ Voucher" /></div>
-            <div class="log-field"><label for="goal-target-usd">Target (USD)</label><input type="number" id="goal-target-usd" placeholder="optional" /></div>
-            <div class="log-field"><label for="goal-target">Target (VND)</label><input type="number" id="goal-target" placeholder="0" /></div>
-            <div class="log-field"><label for="goal-saved">Saved (VND)</label><input type="number" id="goal-saved" placeholder="0" /></div>
-          </div>
-          <div class="log-save-row"><button class="btn" id="add-goal-btn" type="button">Add goal</button></div>
         </section>
 
         <p class="footer">Amounts stored in VND. USD figures elsewhere on the site convert using the rate in the sidebar.</p>
