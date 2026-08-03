@@ -146,6 +146,7 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, formatDetail, initAuthUI } from "./app-shell.js";
+import { MEALS } from "./meals-data.js";
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
@@ -160,50 +161,6 @@ const RULES = [
   "Weigh weekly, judge the 3-week trend — not any single day."
 ];
 
-const MEALS = {
-  Mon: {
-    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs (150g), 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Steep oats in hot water 5 min; boil eggs; banana on the side." },
-    lunch: { dish: "Rice + boiled chicken breast + water spinach", ingredients: "Rice 150g, chicken breast 200g, water spinach 150g", cal: 550, protein: 52, cost: 20000, prep: "Boil chicken with ginger; dip in salt-pepper-lime." },
-    dinner: { dish: "Rice + tofu in tomato sauce + greens soup", ingredients: "Rice 120g, tofu 200g, 2 tomatoes, mustard greens 100g", cal: 500, protein: 26, cost: 13000, prep: "Simmer tofu in tomato sauce; light greens soup." },
-    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat within 30 min after training." }
-  },
-  Tue: {
-    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs both sides, fill baguette; milk on the side." },
-    lunch: { dish: "Rice + braised lean pork + boiled cabbage", ingredients: "Rice 150g, lean pork 180g, cabbage 150g", cal: 560, protein: 44, cost: 27000, prep: "Braise lean pork on low heat; boil cabbage until just done." },
-    dinner: { dish: "Rice + steamed fish + greens", ingredients: "Rice 120g, fish 200g, mustard greens 100g, ginger, scallion", cal: 480, protein: 38, cost: 21000, prep: "Steam fish with ginger and scallion; boil greens." },
-    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Protein top-up snack." }
-  },
-  Wed: {
-    breakfast: { dish: "Egg fried rice (light oil)", ingredients: "Cold rice 150g, 3 eggs, scallion, salt", cal: 460, protein: 24, cost: 12500, prep: "Crack eggs straight into rice; toss fast on high heat." },
-    lunch: { dish: "Rice + pan-seared chicken breast + broccoli", ingredients: "Rice 150g, chicken breast 200g, broccoli 150g, garlic", cal: 540, protein: 52, cost: 22000, prep: "Season chicken with salt-pepper-garlic; sear both sides." },
-    dinner: { dish: "Rice noodles + boiled lean pork + herbs", ingredients: "Rice noodles 150g, lean pork 150g, bean sprouts, herbs", cal: 450, protein: 34, cost: 27000, prep: "Slice boiled pork; serve over noodles with herbs and dip." },
-    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
-  },
-  Thu: {
-    breakfast: { dish: "Oats + 3 boiled eggs + banana", ingredients: "Oats 40g, 3 eggs, 1 banana", cal: 460, protein: 28, cost: 15500, prep: "Filling breakfast, steady energy." },
-    lunch: { dish: "Rice + lemongrass chicken thigh (skinless) + water spinach", ingredients: "Rice 150g, chicken thigh 220g (skinless), water spinach 150g", cal: 560, protein: 44, cost: 19000, prep: "Braise chicken with lemongrass; remove skin to cut fat." },
-    dinner: { dish: "Rice + tofu stuffed with pork (steamed) + soup", ingredients: "Rice 120g, tofu 200g, ground pork 80g, mushroom, scallion", cal: 500, protein: 32, cost: 20500, prep: "Hollow tofu, stuff with pork + mushroom, steam 15 min." },
-    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon snack." }
-  },
-  Fri: {
-    breakfast: { dish: "Egg baguette + milk", ingredients: "1 baguette, 2 eggs, unsweetened milk 200ml", cal: 420, protein: 24, cost: 17000, prep: "Fry eggs, fill baguette, milk on the side." },
-    lunch: { dish: "Rice + boiled chicken breast + winter melon soup", ingredients: "Rice 150g, chicken breast 200g, winter melon 150g, scallion", cal: 500, protein: 50, cost: 19500, prep: "Boil chicken; light winter melon soup." },
-    dinner: { dish: "Rice + steamed egg-pork loaf + boiled greens", ingredients: "Rice 120g, 3 eggs, ground pork 80g, fish sauce", cal: 500, protein: 34, cost: 22000, prep: "Mix eggs + pork + fish sauce; steam or pan-cook." },
-    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Eat after training." }
-  },
-  Sat: {
-    breakfast: { dish: "Beef pho (simple homemade)", ingredients: "Pho noodles 150g, lean beef 100g, sprouts, herbs, broth", cal: 450, protein: 28, cost: 33000, prep: "Thin-slice beef; pour hot broth over; add sprouts + herbs." },
-    lunch: { dish: "Rice + black-pepper braised pork + water spinach", ingredients: "Rice 150g, lean pork 180g, water spinach 150g", cal: 560, protein: 44, cost: 28000, prep: "Braise pork with black pepper; boil water spinach." },
-    dinner: { dish: "Rice + sour fish soup (light) + greens", ingredients: "Rice 120g, fish 180g, tomato, pineapple, tamarind, greens", cal: 480, protein: 34, cost: 19500, prep: "Light sour soup, minimal sugar; serve with greens." },
-    snack: { dish: "Unsweetened yogurt + 2 boiled eggs", ingredients: "Yogurt 150g, 2 eggs", cal: 300, protein: 22, cost: 12500, prep: "Snack." }
-  },
-  Sun: {
-    breakfast: { dish: "Chicken sticky rice (light portion)", ingredients: "Glutinous rice 100g, chicken breast 120g, fried shallots, fish sauce", cal: 480, protein: 30, cost: 13000, prep: "Steam sticky rice; shred boiled chicken on top; keep portion modest." },
-    lunch: { dish: "Rice + pan-seared chicken breast + salad", ingredients: "Rice 150g, chicken breast 200g, lettuce, tomato, cucumber", cal: 520, protein: 52, cost: 21000, prep: "Sear chicken; serve with fresh salad + lime." },
-    dinner: { dish: "Rice + tofu braised with egg + cabbage", ingredients: "Rice 120g, tofu 150g, 2 eggs, cabbage", cal: 480, protein: 28, cost: 15000, prep: "Braise tofu with egg; season fish sauce-sugar-scallion." },
-    snack: { dish: "2 boiled eggs + unsweetened milk", ingredients: "2 eggs, unsweetened milk 200ml", cal: 300, protein: 22, cost: 13000, prep: "Afternoon / post-workout snack." }
-  }
-};
 const MEAL_SLOTS = [["breakfast","Breakfast","life"],["lunch","Lunch","life"],["dinner","Dinner","life"],["snack","Snack","life"]];
 
 const WARMUP = [
@@ -257,12 +214,28 @@ const PRICES = [
   ["Rice noodles (pho/bun)", "5,000₫", "per serving"]
 ];
 
-const DAILY_TOTALS = {
-  Mon: { cal: 1810, protein: 128, cost: 61000 }, Tue: { cal: 1760, protein: 128, cost: 78000 },
-  Wed: { cal: 1750, protein: 132, cost: 74000 }, Thu: { cal: 1820, protein: 126, cost: 68000 },
-  Fri: { cal: 1720, protein: 130, cost: 71000 }, Sat: { cal: 1790, protein: 128, cost: 93000 },
-  Sun: { cal: 1780, protein: 132, cost: 62000 }
-};
+function computeDailyTotals() {
+  const totals = {};
+  for (const day of DAYS) {
+    const meals = MEALS[day];
+    totals[day] = ["breakfast", "lunch", "dinner", "snack"].reduce((acc, slot) => {
+      acc.cal += meals[slot].cal;
+      acc.protein += meals[slot].protein;
+      acc.cost += meals[slot].cost;
+      return acc;
+    }, { cal: 0, protein: 0, cost: 0 });
+  }
+  return totals;
+}
+const DAILY_TOTALS = computeDailyTotals();
+
+const WEEK_TOTALS = DAYS.reduce((acc, d) => {
+  acc.cal += DAILY_TOTALS[d].cal;
+  acc.protein += DAILY_TOTALS[d].protein;
+  acc.cost += DAILY_TOTALS[d].cost;
+  return acc;
+}, { cal: 0, protein: 0, cost: 0 });
+const AVG_CAL_ACTUAL_PER_DAY = Math.round(WEEK_TOTALS.cal / DAYS.length);
 
 const HEIGHT_M = 1.65;
 const STORAGE_KEY = "health-tracker-log";
@@ -492,11 +465,11 @@ function render() {
       <div class="col-side">
         <p class="eyebrow">This week</p>
         <div class="stat" style="padding:0; background:transparent; margin-bottom:16px;">
-          <p class="stat-value">12,430 <span style="font-size:14px; color:var(--ink-soft);">kcal</span></p>
-          <p class="stat-label" style="margin-top:2px;">904g protein · 507,000₫ · 7 days</p>
+          <p class="stat-value">${WEEK_TOTALS.cal.toLocaleString()} <span style="font-size:14px; color:var(--ink-soft);">kcal</span></p>
+          <p class="stat-label" style="margin-top:2px;">${WEEK_TOTALS.protein}g protein · ${WEEK_TOTALS.cost.toLocaleString()}₫ · 7 days</p>
         </div>
         <p class="eyebrow">Daily target</p>
-        <p class="subtitle" style="margin-bottom:16px;">~1,850 kcal &middot; ~130g protein &middot; avg ~1,776 kcal actual/day</p>
+        <p class="subtitle" style="margin-bottom:16px;">~1,850 kcal &middot; ~130g protein &middot; avg ~${AVG_CAL_ACTUAL_PER_DAY.toLocaleString()} kcal actual/day</p>
         <p class="eyebrow">Remember</p>
         <p class="subtitle" style="margin:0;">Weigh weekly. Judge the 3-week trend, not any single day.</p>
       </div>
