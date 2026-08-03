@@ -23,7 +23,7 @@
   .layout { display: grid; grid-template-columns: 1fr minmax(240px, clamp(300px, 22vw, 400px)); gap: clamp(56px, 4.5vw, 110px); align-items: start; }
   .col-side { position: sticky; top: 24px; background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px; padding: 22px 24px; }
   .col-main { min-width: 0; }
-  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 20px; } .col-side { position: static; order: -1; } }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; gap: 20px; } .col-side { position: static; } }
 
   section.card { margin-bottom: 44px; }
 
