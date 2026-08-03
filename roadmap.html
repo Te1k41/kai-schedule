@@ -90,9 +90,10 @@
   .task-detail .detail-body .detail-para:last-child { margin-bottom: 0; }
   .task-detail .detail-body strong { color: var(--vermillion); font-weight: 700; }
 
-  .footer { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
+  .footer { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); flex-wrap: wrap; gap: 8px; }
   .footer button { background: none; border: none; color: var(--ink-soft); font-size: clamp(12.5px, 0.7vw, 15px); text-decoration: underline; cursor: pointer; font-family: var(--font); padding: 4px; }
   .footer button:hover { color: var(--ink); }
+  .footer [data-action="reset-confirm"] { color: var(--danger); font-weight: 700; }
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: 1fr; gap: 20px; }
@@ -202,6 +203,7 @@ const STORAGE_KEY = "soc-roadmap-progress";
 let progress = {};
 let openPhases = new Set();
 let loaded = false;
+let resetArmed = false;
 
 function flatTasks() {
   return PHASES.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
@@ -236,8 +238,18 @@ function toggleTask(id) {
   render();
 }
 
-async function resetProgress() {
-  if (!confirm("Clear all progress? This can't be undone.")) return;
+function armReset() {
+  resetArmed = true;
+  render();
+}
+
+function cancelReset() {
+  resetArmed = false;
+  render();
+}
+
+async function confirmReset() {
+  resetArmed = false;
   progress = {};
   await saveProgress();
   openPhases = new Set([PHASES[0].id]);
@@ -325,7 +337,13 @@ function render() {
         ${phasesHtml}
         <div class="footer">
           <span>Saved automatically</span>
-          <button data-action="reset" type="button">Reset progress</button>
+          ${resetArmed ? `
+            <span>
+              Clear everything?
+              <button data-action="reset-confirm" type="button">Yes, clear</button>
+              <button data-action="reset-cancel" type="button">Cancel</button>
+            </span>
+          ` : `<button data-action="reset" type="button">Reset progress</button>`}
         </div>
       </div>
       <div class="col-side">
@@ -355,7 +373,11 @@ function render() {
     completeBtn.addEventListener("click", () => toggleTask(completeBtn.getAttribute("data-id")));
   }
   const resetBtn = app.querySelector('[data-action="reset"]');
-  if (resetBtn) resetBtn.addEventListener("click", resetProgress);
+  if (resetBtn) resetBtn.addEventListener("click", armReset);
+  const resetConfirmBtn = app.querySelector('[data-action="reset-confirm"]');
+  if (resetConfirmBtn) resetConfirmBtn.addEventListener("click", confirmReset);
+  const resetCancelBtn = app.querySelector('[data-action="reset-cancel"]');
+  if (resetCancelBtn) resetCancelBtn.addEventListener("click", cancelReset);
 }
 
 initAuthUI({
