@@ -62,6 +62,9 @@
   .arrow { color: var(--vermillion); font-size: clamp(20px, 1.3vw, 28px); flex-shrink: 0; transition: transform 0.15s ease; }
   @media (prefers-reduced-motion: reduce) { .arrow, .link-row:hover { transition: none; transform: none; } }
 
+  .link-row-quick { padding: clamp(14px, 1.1vw, 18px) clamp(20px, 1.6vw, 28px); background: transparent; border-style: dashed; }
+  .link-row-quick .link-title { font-size: clamp(17px, 1.1vw, 21px); }
+
   .footer { margin-top: 28px; font-size: clamp(12.5px, 0.75vw, 15px); color: var(--ink-soft); }
 
   @media (max-width: 780px) {
@@ -88,6 +91,20 @@
         <p class="subtitle">Synced across every device you sign into with the same Google account.</p>
       </div>
       <div class="links">
+        <a class="link-row link-row-quick" href="./now.html">
+          <span class="link-text">
+            <span class="link-title">Right Now</span>
+            <span class="link-sub">One glance — what you should be doing this minute</span>
+          </span>
+          <span class="arrow">&rarr;</span>
+        </a>
+        <a class="link-row link-row-quick" href="./money.html">
+          <span class="link-text">
+            <span class="link-title">Quick Log</span>
+            <span class="link-sub">Balance + fast expense/income entry</span>
+          </span>
+          <span class="arrow">&rarr;</span>
+        </a>
         <a class="link-row" href="./schedule.html">
           <span class="link-text">
             <span class="link-title">Daily Timetable</span>
