@@ -1,0 +1,63 @@
+:root {
+  --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
+  --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14); --danger: #8A2F20;
+  --cat-work: #2E4A66; --cat-study: #806124; --cat-fitness: #9E3A26; --cat-life: #52603E;
+  --phase1: #52603E; --phase2: #806124; --phase3: #2E4A66; --phase4: #664B57; --phase5: #9E3A26;
+  --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
+  --font-display: 'Shippori Mincho', Georgia, serif;
+  --fs-2xs: clamp(12.5px, 0.85vw, 14.5px);
+  --fs-xs: clamp(13.5px, 0.95vw, 15.5px);
+  --fs-sm: clamp(14.5px, 1.05vw, 17px);
+  --fs-base: clamp(15.5px, 1.15vw, 18px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+body {
+  padding: 24px 20px 60px; position: relative; animation: page-in 0.35s ease-out;
+  background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(33,30,26,0.035), transparent 60%);
+}
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.koi-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.07;
+  background-image: url('./assets/koi.jpg'); background-repeat: no-repeat;
+  animation: koi-sway 10s ease-in-out infinite; transform-origin: center;
+}
+@keyframes koi-sway { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(0.4deg) scale(1.02); } }
+@media (orientation: portrait) { .koi-bg { background-size: auto 78vh; background-position: center center; } }
+@media (orientation: landscape) { .koi-bg { background-size: auto 92vh; background-position: bottom right; } }
+@media (max-width: 780px) { .koi-bg { opacity: 0.05; } }
+
+nav.top, .auth-gate, .signed-in-as, .shell { position: relative; z-index: 1; }
+
+.shell { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto; }
+nav.top { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto 24px; display: flex; gap: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+nav.top a { color: var(--ink-soft); text-decoration: none; font-size: clamp(13px, 0.75vw, 16px); font-weight: 700; background-image: linear-gradient(var(--vermillion), var(--vermillion)); background-size: 0% 2px; background-repeat: no-repeat; background-position: left bottom; padding-bottom: 3px; transition: background-size 0.2s ease, color 0.15s ease; }
+nav.top a:hover { color: var(--ink); background-size: 100% 2px; }
+nav.top a.current { color: var(--vermillion); }
+
+.eyebrow { font-size: clamp(12px, 0.65vw, 15px); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vermillion); margin: 0 0 8px; }
+
+.auth-gate { max-width: 380px; margin: 80px auto; text-align: center; }
+.auth-gate .subtitle { margin: 0 0 22px; }
+.auth-error { color: var(--danger); font-size: var(--fs-sm); margin-top: 14px; }
+.signed-in-as { font-size: var(--fs-xs); color: var(--ink-soft); text-align: right; max-width: 600px; margin: 0 auto 14px; }
+.signed-in-as button { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: var(--fs-xs); padding: 0 0 0 10px; }
+.signed-in-as button:hover { color: var(--ink); }
+
+.btn {
+  font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
+  border: none; background: var(--vermillion); color: var(--paper);
+  padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
+}
+.btn:hover { opacity: 0.88; }
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
+.btn-ghost { background: transparent; color: var(--vermillion); border: 1px solid var(--vermillion); }
+.btn-small { font-size: var(--fs-2xs); padding: 6px 12px; min-height: 32px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

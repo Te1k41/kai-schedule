@@ -14,67 +14,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./shared.css">
 <style>
-  :root {
-    --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
-    --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14); --danger: #8A2F20;
-    --cat-work: #2E4A66; --cat-study: #806124; --cat-fitness: #9E3A26; --cat-life: #52603E;
-    --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
-    --font-display: 'Shippori Mincho', Georgia, serif;
-    --fs-2xs: clamp(12.5px, 0.85vw, 14.5px);
-    --fs-xs: clamp(13.5px, 0.95vw, 15.5px);
-    --fs-sm: clamp(14.5px, 1.05vw, 17px);
-    --fs-base: clamp(15.5px, 1.15vw, 18px);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
-  body {
-    padding: 24px 20px 60px; position: relative; animation: page-in 0.35s ease-out;
-    background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(33,30,26,0.035), transparent 60%);
-  }
-  @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-  .koi-bg {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.07;
-    background-image: url('./assets/koi.jpg'); background-repeat: no-repeat;
-    animation: koi-sway 10s ease-in-out infinite; transform-origin: center;
-  }
-  @keyframes koi-sway { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(0.4deg) scale(1.02); } }
-  @media (orientation: portrait) { .koi-bg { background-size: auto 78vh; background-position: center center; } }
-  @media (orientation: landscape) { .koi-bg { background-size: auto 92vh; background-position: bottom right; } }
-  @media (max-width: 780px) { .koi-bg { opacity: 0.05; } }
-
-  nav.top, .auth-gate, .signed-in-as, .shell { position: relative; z-index: 1; }
-
-  .shell { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto; }
-  nav.top { max-width: clamp(960px, 76vw, 1880px); margin: 0 auto 24px; display: flex; gap: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-  nav.top a { color: var(--ink-soft); text-decoration: none; font-size: clamp(13px, 0.75vw, 16px); font-weight: 700; background-image: linear-gradient(var(--vermillion), var(--vermillion)); background-size: 0% 2px; background-repeat: no-repeat; background-position: left bottom; padding-bottom: 3px; transition: background-size 0.2s ease, color 0.15s ease; }
-  nav.top a:hover { color: var(--ink); background-size: 100% 2px; }
-  nav.top a.current { color: var(--vermillion); }
-
-  .eyebrow { font-size: clamp(12px, 0.65vw, 15px); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vermillion); margin: 0 0 8px; }
   h1 { font-family: var(--font-display); font-size: clamp(24px, 1.7vw, 34px); line-height: 1.2; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
   h2 { font-family: var(--font-display); font-size: clamp(19px, 1.2vw, 24px); font-weight: 600; margin: 0 0 4px; }
   .subtitle { color: var(--ink-soft); font-size: var(--fs-sm); line-height: 1.6; margin: 0 0 24px; max-width: 62ch; }
-
-  .auth-gate { max-width: 380px; margin: 80px auto; text-align: center; }
-  .auth-gate .subtitle { margin: 0 0 22px; }
-  .btn {
-    font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
-    border: none; background: var(--vermillion); color: var(--paper);
-    padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
-  }
-  .btn:hover { opacity: 0.88; }
-  .btn:active { transform: scale(0.97); }
-  .btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
-  .btn-ghost { background: transparent; color: var(--vermillion); border: 1px solid var(--vermillion); }
-  .btn-small { font-size: var(--fs-2xs); padding: 6px 12px; min-height: 32px; }
-  .auth-error { color: var(--danger); font-size: var(--fs-sm); margin-top: 14px; }
-  .signed-in-as { font-size: var(--fs-xs); color: var(--ink-soft); text-align: right; max-width: 600px; margin: 0 auto 14px; }
-  .signed-in-as button { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: var(--fs-xs); padding: 0 0 0 10px; }
-  .signed-in-as button:hover { color: var(--ink); }
 
   .layout { display: grid; grid-template-columns: 1fr minmax(240px, clamp(300px, 22vw, 400px)); gap: clamp(56px, 4.5vw, 110px); align-items: start; }
   .col-side { position: sticky; top: 24px; background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px; padding: 22px 24px; }
@@ -142,10 +86,6 @@
   .converter-equiv li { margin: 0 0 4px; }
 
   .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  }
 </style>
 </head>
 <body>
@@ -169,7 +109,8 @@
   </div>
 
 <script type="module">
-import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-init.js";
+import { loadData, saveData } from "./firebase-init.js";
+import { escapeHtml, initAuthUI } from "./app-shell.js";
 
 const STORAGE_KEY = "finance-data";
 const CATEGORIES = [
@@ -201,12 +142,6 @@ function fmtVnd(n) { return Math.round(n).toLocaleString() + " VND"; }
 function fmtUsd(n) { return rate.usdToVnd ? "$" + (n / rate.usdToVnd).toFixed(2) : ""; }
 function fmtBoth(n) { const usd = fmtUsd(n); return usd ? `${fmtVnd(n)} (${usd})` : fmtVnd(n); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-
-function escapeHtml(str) {
-  const d = document.createElement("div");
-  d.textContent = str;
-  return d.innerHTML;
-}
 
 async function loadFinance() {
   try {
@@ -658,34 +593,15 @@ function render() {
   }
 }
 
-document.getElementById("signin-btn").addEventListener("click", () => {
-  const err = document.getElementById("auth-error");
-  err.style.display = "none";
-  signIn().catch(e => { err.textContent = "Sign-in failed — " + e.message; err.style.display = ""; });
-});
-
-watchAuth((user) => {
-  document.getElementById("boot-loading").style.display = "none";
-  const gate = document.getElementById("auth-gate");
-  const app = document.getElementById("app");
-  const who = document.getElementById("signed-in-as");
-  if (user) {
-    gate.style.display = "none";
-    app.style.display = "";
-    who.style.display = "";
-    who.innerHTML = escapeHtml(user.email || user.displayName || "signed in") + '<button id="signout-btn">Sign out</button>';
-    document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
+initAuthUI({
+  onSignedIn: () => {
     if (!loaded) {
       const cached = localStorage.getItem("finance-usd-vnd-rate");
       if (cached) rate = JSON.parse(cached);
       loadFinance().then(() => fetchRate(document.getElementById("app")));
     }
-  } else {
-    gate.style.display = "";
-    app.style.display = "none";
-    who.style.display = "none";
-    loaded = false;
-  }
+  },
+  onSignedOut: () => { loaded = false; }
 });
 </script>
 <script src="./pwa-init.js"></script>
