@@ -204,12 +204,27 @@ function escapeHtml(str) {
 async function loadFinance() {
   try {
     const value = await loadData(STORAGE_KEY);
-    if (value) data = { income: [], expenses: [], budgets: {}, goals: [], ...value };
+    if (value) data = { income: [], expenses: [], budgets: {}, goals: [], subscriptions: [], ...value };
   } catch (e) {
-    data = { income: [], expenses: [], budgets: {}, goals: [] };
+    data = { income: [], expenses: [], budgets: {}, goals: [], subscriptions: [] };
   }
   loaded = true;
+  const logged = applyRecurringSubscriptions();
+  if (logged) await saveFinance();
   render();
+}
+
+function applyRecurringSubscriptions() {
+  const mk = currentMonthKey();
+  let changed = false;
+  for (const sub of data.subscriptions) {
+    if (sub.lastLoggedMonth !== mk) {
+      data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)` });
+      sub.lastLoggedMonth = mk;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 async function saveFinance() {
@@ -249,6 +264,17 @@ function addExpense(app) {
 
 function removeEntry(list, id) {
   data[list] = data[list].filter(e => e.id !== id);
+  saveFinance();
+  render();
+}
+
+function addSubscription(app) {
+  const name = app.querySelector("#sub-name").value.trim();
+  const category = app.querySelector("#sub-category").value;
+  const amount = Number(app.querySelector("#sub-amount").value);
+  if (!name || !amount) return;
+  data.subscriptions.push({ id: uid(), name, category, amount, lastLoggedMonth: null });
+  applyRecurringSubscriptions();
   saveFinance();
   render();
 }
@@ -344,6 +370,20 @@ function render() {
   const net = incomeTotal - expenseTotal;
   const goalTotalTarget = data.goals.reduce((s, g) => s + g.target, 0);
   const goalTotalSaved = data.goals.reduce((s, g) => s + g.saved, 0);
+  const subTotal = data.subscriptions.reduce((s, sub) => s + sub.amount, 0);
+
+  const subsHtml = data.subscriptions.length ? data.subscriptions.map(sub => `
+    <div class="budget-row">
+      <div class="budget-top">
+        <span class="budget-name">${escapeHtml(sub.name)}</span>
+        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${sub.lastLoggedMonth === currentMonthKey() ? "logged this month" : "logs next visit"}</span>
+        <button class="row-del" data-del="subscriptions" data-id="${sub.id}" type="button" style="margin-left:auto;">&times;</button>
+      </div>
+    </div>
+  `).join("") : `<p class="rows-empty">No recurring fees yet — add one below (Claude Pro, TryHackMe, etc).</p>`;
 
   const incomeRows = [...data.income].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
   const incomeHtml = incomeRows.length ? `
@@ -418,6 +458,7 @@ function render() {
             <div class="stat"><p class="stat-label">Spent this month</p><p class="stat-value">${fmtVnd(expenseTotal)}</p><p class="stat-value small">${fmtUsd(expenseTotal)}</p></div>
             <div class="stat"><p class="stat-label">Net</p><p class="stat-value ${net >= 0 ? "good" : "bad"}">${net >= 0 ? "+" : ""}${fmtVnd(net)}</p><p class="stat-value small">${net >= 0 ? "+" : ""}${fmtUsd(net)}</p></div>
             <div class="stat"><p class="stat-label">Goals saved</p><p class="stat-value small">${fmtBoth(goalTotalSaved)} / ${fmtBoth(goalTotalTarget)}</p></div>
+            <div class="stat"><p class="stat-label">Recurring / mo</p><p class="stat-value small">${fmtBoth(subTotal)}</p></div>
           </div>
         </section>
 
@@ -425,6 +466,21 @@ function render() {
           <h2>Budget by category</h2>
           <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month.</p>
           ${budgetHtml}
+        </section>
+
+        <section class="card">
+          <h2>Recurring subscriptions</h2>
+          <p class="subtitle" style="margin-bottom:12px;">Fixed monthly fees (Claude Pro, TryHackMe, etc). Each auto-logs itself as an expense the first time you open this page in a new month.</p>
+          ${subsHtml}
+          <p class="eyebrow" style="margin:20px 0 10px;">Add a subscription</p>
+          <div class="log-form">
+            <div class="log-field"><label for="sub-name">Name</label><input type="text" id="sub-name" placeholder="e.g. Claude Pro" /></div>
+            <div class="log-field"><label for="sub-category">Category</label>
+              <select id="sub-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
+            </div>
+            <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="number" id="sub-amount" placeholder="0" /></div>
+          </div>
+          <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
         </section>
 
         <section class="card">
@@ -479,6 +535,7 @@ function render() {
   app.querySelector("#add-income-btn").addEventListener("click", () => addIncome(app));
   app.querySelector("#add-expense-btn").addEventListener("click", () => addExpense(app));
   app.querySelector("#add-goal-btn").addEventListener("click", () => addGoal(app));
+  app.querySelector("#add-sub-btn").addEventListener("click", () => addSubscription(app));
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
   });
