@@ -55,7 +55,8 @@
   .recent-amount.expense { color: var(--danger); }
   .recent-amount.income { color: var(--cat-life); }
 
-  .full-link { display: inline-block; margin-top: 28px; font-size: var(--fs-sm); font-weight: 700; color: var(--vermillion); text-decoration: none; }
+  .link-row { display: flex; gap: 20px; margin-top: 28px; flex-wrap: wrap; }
+  .full-link { display: inline-block; font-size: var(--fs-sm); font-weight: 700; color: var(--vermillion); text-decoration: none; }
   .full-link:hover { text-decoration: underline; }
 </style>
 </head>
@@ -168,7 +169,10 @@ function render() {
     <button class="btn" id="qm-save-btn" type="button" style="width:100%;">Save</button>
 
     ${recentHtml}
-    <a class="full-link" href="./finance.html">Full Finance &rarr;</a>
+    <div class="link-row">
+      <a class="full-link" href="./finance.html">Full Finance &rarr;</a>
+      <a class="full-link" href="./now.html">Right Now &rarr;</a>
+    </div>
   `;
 
   app.querySelectorAll("[data-mode]").forEach(btn => {
