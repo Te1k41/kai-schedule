@@ -118,24 +118,13 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, initAuthUI, notifySaveFailed } from "./app-shell.js";
-
-const STORAGE_KEY = "finance-data";
-const CATEGORIES = [
-  { key: "food", label: "Food", color: "var(--cat-life)" },
-  { key: "study", label: "Study / Certs", color: "var(--cat-study)" },
-  { key: "transport", label: "Transport", color: "var(--cat-work)" },
-  { key: "bills", label: "Bills", color: "var(--cat-work)" },
-  { key: "fun", label: "Fun", color: "var(--cat-fitness)" },
-  { key: "other", label: "Other", color: "var(--ink-soft)" }
-];
-const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]));
-const CAT_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.key, c.color]));
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, uid, fmtVnd, accountBalance, accountName, totalBalance } from "./finance-core.js";
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
 const EGG_COST_VND = 3200;
 const TRYHACKME_MONTHLY_USD = 14;
 
-let data = { income: [], expenses: [], budgets: {}, goals: [] };
+let data = defaultFinanceData();
 let loaded = false;
 let rate = { usdToVnd: null, updatedAt: null };
 let markupPct = Number(localStorage.getItem("finance-usd-markup") ?? 11.7);
@@ -145,17 +134,15 @@ function effectiveRate() { return rate.usdToVnd ? rate.usdToVnd * (1 + markupPct
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function currentMonthKey() { return todayDateStr().slice(0, 7); }
-function fmtVnd(n) { return Math.round(n).toLocaleString() + " VND"; }
 function fmtUsd(n) { return rate.usdToVnd ? "$" + (n / rate.usdToVnd).toFixed(2) : ""; }
 function fmtBoth(n) { const usd = fmtUsd(n); return usd ? `${fmtVnd(n)} (${usd})` : fmtVnd(n); }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
 async function loadFinance() {
   try {
     const value = await loadData(STORAGE_KEY);
-    if (value) data = { income: [], expenses: [], budgets: {}, goals: [], subscriptions: [], accounts: [], ...value };
+    if (value) data = { ...defaultFinanceData(), ...value };
   } catch (e) {
-    data = { income: [], expenses: [], budgets: {}, goals: [], subscriptions: [], accounts: [] };
+    data = defaultFinanceData();
   }
   loaded = true;
   const logged = applyRecurringSubscriptions();
@@ -189,19 +176,6 @@ function monthTotal(list) {
 function categoryMonthTotal(catKey) {
   const mk = currentMonthKey();
   return data.expenses.filter(e => e.date && e.date.startsWith(mk) && e.category === catKey).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-}
-
-function accountBalance(accId) {
-  const acc = data.accounts.find(a => a.id === accId);
-  if (!acc) return 0;
-  const inc = data.income.filter(e => e.account === accId).reduce((s, e) => s + Number(e.amount || 0), 0);
-  const exp = data.expenses.filter(e => e.account === accId).reduce((s, e) => s + Number(e.amount || 0), 0);
-  return acc.startingBalance + inc - exp;
-}
-
-function accountName(accId) {
-  const acc = data.accounts.find(a => a.id === accId);
-  return acc ? acc.name : "—";
 }
 
 function accountOptionsHtml(selectedId) {
@@ -351,10 +325,10 @@ function render() {
   const goalTotalTarget = data.goals.reduce((s, g) => s + g.target, 0);
   const goalTotalSaved = data.goals.reduce((s, g) => s + g.saved, 0);
   const subTotal = data.subscriptions.reduce((s, sub) => s + sub.amount, 0);
-  const totalBalance = data.accounts.reduce((s, a) => s + accountBalance(a.id), 0);
+  const totalBalanceVnd = totalBalance(data);
 
   const accountsHtml = data.accounts.length ? data.accounts.map(a => {
-    const bal = accountBalance(a.id);
+    const bal = accountBalance(data, a.id);
     return `
       <div class="budget-row">
         <div class="budget-top">
@@ -370,7 +344,7 @@ function render() {
     <div class="budget-row">
       <div class="budget-top">
         <span class="budget-name">${escapeHtml(sub.name)}</span>
-        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(sub.account)}</span>
+        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${sub.lastLoggedMonth === currentMonthKey() ? "logged this month" : "logs next visit"}</span>
@@ -384,7 +358,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Source</th><th>Account</th><th>Amount</th><th></th></tr></thead>
       <tbody>
-        ${incomeRows.map(e => `<tr><td>${e.date}</td><td>${escapeHtml(e.source)}</td><td>${accountName(e.account)}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${incomeRows.map(e => `<tr><td>${e.date}</td><td>${escapeHtml(e.source)}</td><td>${accountName(data, e.account)}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No income logged yet.</p>`;
@@ -394,7 +368,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td>${CAT_LABEL[e.category] || "Other"}</td><td>${accountName(e.account)}</td><td>${escapeHtml(e.note || "")}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td>${CAT_LABEL[e.category] || "Other"}</td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
@@ -453,7 +427,7 @@ function render() {
             <div class="stat"><p class="stat-label">Net</p><p class="stat-value ${net >= 0 ? "good" : "bad"}">${net >= 0 ? "+" : ""}${fmtVnd(net)}</p><p class="stat-value small">${net >= 0 ? "+" : ""}${fmtUsd(net)}</p></div>
             <div class="stat"><p class="stat-label">Goals saved</p><p class="stat-value small">${fmtBoth(goalTotalSaved)} / ${fmtBoth(goalTotalTarget)}</p></div>
             <div class="stat"><p class="stat-label">Recurring / mo</p><p class="stat-value small">${fmtBoth(subTotal)}</p></div>
-            <div class="stat"><p class="stat-label">Total balance</p><p class="stat-value ${totalBalance >= 0 ? "good" : "bad"}">${fmtVnd(totalBalance)}</p><p class="stat-value small">${fmtUsd(totalBalance)}</p></div>
+            <div class="stat"><p class="stat-label">Total balance</p><p class="stat-value ${totalBalanceVnd >= 0 ? "good" : "bad"}">${fmtVnd(totalBalanceVnd)}</p><p class="stat-value small">${fmtUsd(totalBalanceVnd)}</p></div>
           </div>
         </section>
 

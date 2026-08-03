@@ -1,7 +1,8 @@
-const CACHE = "kai-ops-v2";
+const CACHE = "kai-ops-v3";
 const SHELL = [
   "./index.html", "./schedule.html", "./roadmap.html", "./health.html", "./finance.html", "./offline.html",
-  "./manifest.json", "./shared.css", "./app-shell.js", "./meals-data.js", "./firebase-init.js",
+  "./now.html", "./money.html",
+  "./manifest.json", "./shared.css", "./app-shell.js", "./meals-data.js", "./schedule-data.js", "./finance-core.js", "./firebase-init.js",
   "./assets/icon-192.png", "./assets/icon-512.png", "./assets/koi.jpg"
 ];
 

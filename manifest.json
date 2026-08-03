@@ -12,8 +12,8 @@
     { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ],
   "shortcuts": [
-    { "name": "Now", "url": "./schedule.html", "description": "What should I be doing now" },
-    { "name": "Log expense", "url": "./finance.html#log-expense", "description": "Quickly log a spend" },
+    { "name": "Now", "url": "./now.html", "description": "What should I be doing right now" },
+    { "name": "Quick log", "url": "./money.html", "description": "Log an expense or income fast" },
     { "name": "Roadmap", "url": "./roadmap.html", "description": "SOC analyst roadmap progress" },
     { "name": "Health", "url": "./health.html", "description": "Today's log and meal plan" }
   ]

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>Right Now</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#9E3A26">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./shared.css">
+<style>
+  h1 { font-family: var(--font-display); font-size: clamp(24px, 6vw, 32px); line-height: 1.2; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-soft); font-size: var(--fs-sm); line-height: 1.5; margin: 0 0 22px; }
+  body { display: flex; align-items: center; min-height: 100vh; padding: 24px; }
+  .shell { max-width: 480px; width: 100%; margin: 0 auto; }
+  .back-link { display: block; font-size: var(--fs-xs); color: var(--ink-soft); text-decoration: none; margin-bottom: 28px; }
+  .back-link:hover { color: var(--ink); }
+
+  .now-clock { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink-soft); margin: 0 0 12px; }
+  .now-clock strong { color: var(--ink); }
+  .now-label { font-size: var(--fs-xs); color: var(--ink-soft); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .now-task { font-family: var(--font-display); font-size: clamp(34px, 10vw, 56px); line-height: 1.05; font-weight: 600; margin: 0; color: var(--vermillion); letter-spacing: -0.01em; }
+  .now-note { font-size: var(--fs-base); color: var(--ink-soft); margin: 16px 0 0; white-space: pre-line; line-height: 1.55; }
+  .preview-tag { font-size: var(--fs-xs); font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; }
+
+  .now-detail { margin-top: 20px; }
+  .now-detail summary { list-style: none; cursor: pointer; font-size: var(--fs-sm); color: var(--vermillion); font-weight: 700; }
+  .now-detail summary::-webkit-details-marker { display: none; }
+  .now-detail summary::before { content: '+ Full breakdown'; }
+  .now-detail[open] summary::before { content: '– Full breakdown'; }
+  .detail-body { line-height: 1.75; font-size: var(--fs-base); color: var(--ink); margin: 10px 0 4px; padding: 12px 14px; border-left: 3px solid var(--vermillion); background: var(--paper-deep); }
+  .detail-body .detail-para { margin: 0 0 14px; }
+  .detail-body .detail-para:last-child { margin-bottom: 0; }
+  .detail-body strong { color: var(--vermillion); font-weight: 700; }
+
+  .full-link { display: inline-block; margin-top: 28px; font-size: var(--fs-sm); font-weight: 700; color: var(--vermillion); text-decoration: none; }
+  .full-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="koi-bg" aria-hidden="true"></div>
+
+  <div class="shell">
+    <a class="back-link" href="./index.html">&larr; Kai's Ops</a>
+
+    <p class="eyebrow" id="boot-loading" style="text-align:center;">Loading…</p>
+
+    <div class="auth-gate" id="auth-gate" style="display:none;">
+      <p class="eyebrow">Sign in</p>
+      <h1>One tap to sync</h1>
+      <p class="subtitle">Sign in with the same Google account on every device.</p>
+      <button class="btn" id="signin-btn">Sign in with Google</button>
+      <p class="auth-error" id="auth-error" style="display:none;"></p>
+    </div>
+
+    <p class="signed-in-as" id="signed-in-as" style="display:none;"></p>
+    <div id="app" style="display:none;"></div>
+  </div>
+
+<script type="module">
+import { escapeHtml, formatDetail, initAuthUI } from "./app-shell.js";
+import { DAYS, weekdayTemplate, weekendTemplate } from "./schedule-data.js";
+
+function todayAbbrev() { return DAYS[(new Date().getDay() + 6) % 7]; }
+function toMinutes(str) { const [h, m] = str.split(":").map(Number); return h * 60 + m; }
+function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+function nowClockStr() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+
+function render() {
+  const app = document.getElementById("app");
+  const today = todayAbbrev();
+  const isWeekend = today === "Sat" || today === "Sun";
+  const blocks = isWeekend ? weekendTemplate(today) : weekdayTemplate(today);
+  const nm = nowMinutes();
+  const current = blocks.find(b => {
+    const s = toMinutes(b.start), e = toMinutes(b.end);
+    return e <= s ? (nm >= s || nm < e) : (nm >= s && nm < e);
+  });
+
+  app.innerHTML = `
+    <p class="now-clock">It's <strong>${nowClockStr()}</strong></p>
+    <p class="now-label">You should be in</p>
+    <p class="now-task">${current ? escapeHtml(current.label) : "A quiet gap"}</p>
+    ${current && current.note ? `<p class="now-note">${escapeHtml(current.note)}</p>` : ""}
+    ${current && current.detail ? `
+      <details class="now-detail">
+        <summary></summary>
+        <div class="detail-body">${formatDetail(current.detail)}</div>
+      </details>
+    ` : ""}
+    <a class="full-link" href="./schedule.html">Full schedule &rarr;</a>
+  `;
+}
+
+initAuthUI({
+  onSignedIn: () => { render(); },
+  onSignedOut: () => {}
+});
+
+setInterval(() => { if (document.getElementById("app").style.display !== "none") render(); }, 30000);
+</script>
+<script src="./pwa-init.js"></script>
+</body>
+</html>

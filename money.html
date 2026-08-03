@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>Quick Log</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#9E3A26">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./shared.css">
+<style>
+  h1 { font-family: var(--font-display); font-size: clamp(24px, 6vw, 32px); line-height: 1.2; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: var(--ink-soft); font-size: var(--fs-sm); line-height: 1.5; margin: 0 0 22px; }
+  body { padding: 24px; }
+  .shell { max-width: 480px; width: 100%; margin: 0 auto; }
+  .back-link { display: block; font-size: var(--fs-xs); color: var(--ink-soft); text-decoration: none; margin-bottom: 28px; }
+  .back-link:hover { color: var(--ink); }
+
+  .balance-label { font-size: var(--fs-xs); color: var(--ink-soft); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .balance-value { font-family: var(--font-display); font-size: clamp(30px, 9vw, 46px); font-weight: 600; margin: 0 0 28px; color: var(--vermillion); letter-spacing: -0.01em; }
+  .balance-value.bad { color: var(--danger); }
+
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mode-btn {
+    flex: 1; font-family: var(--font); font-weight: 700; font-size: var(--fs-sm); text-align: center;
+    padding: 12px 10px; min-height: 44px; border-radius: 2px; border: 1px solid var(--border); background: var(--paper); color: var(--ink-soft); cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .mode-btn.active-expense { background: var(--danger); color: var(--paper); border-color: var(--danger); }
+  .mode-btn.active-income { background: var(--cat-life); color: var(--paper); border-color: var(--cat-life); }
+
+  .log-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+  .log-field input[type="number"], .log-field input[type="text"], .log-field select {
+    font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
+    border: 1px solid var(--border); border-radius: 2px; padding: 10px 12px; width: 100%;
+  }
+  .log-field.amount input {
+    font-family: var(--font-display); font-size: clamp(26px, 9vw, 38px); font-weight: 600; color: var(--vermillion);
+    padding: 8px 10px;
+  }
+  .log-field input:focus-visible, .log-field select:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
+
+  .recent-list { margin: 24px 0 0; padding: 0; list-style: none; }
+  .recent-list li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-size: var(--fs-sm); }
+  .recent-list li:first-child { border-top: none; }
+  .recent-amount { font-family: var(--font-mono); white-space: nowrap; }
+  .recent-amount.expense { color: var(--danger); }
+  .recent-amount.income { color: var(--cat-life); }
+
+  .full-link { display: inline-block; margin-top: 28px; font-size: var(--fs-sm); font-weight: 700; color: var(--vermillion); text-decoration: none; }
+  .full-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="koi-bg" aria-hidden="true"></div>
+
+  <div class="shell">
+    <a class="back-link" href="./index.html">&larr; Kai's Ops</a>
+
+    <p class="eyebrow" id="boot-loading" style="text-align:center;">Loading…</p>
+
+    <div class="auth-gate" id="auth-gate" style="display:none;">
+      <p class="eyebrow">Sign in</p>
+      <h1>One tap to sync</h1>
+      <p class="subtitle">Sign in with the same Google account on every device.</p>
+      <button class="btn" id="signin-btn">Sign in with Google</button>
+      <p class="auth-error" id="auth-error" style="display:none;"></p>
+    </div>
+
+    <p class="signed-in-as" id="signed-in-as" style="display:none;"></p>
+    <div id="app" style="display:none;">
+      <p class="eyebrow">Loading…</p>
+    </div>
+  </div>
+
+<script type="module">
+import { loadData, saveData } from "./firebase-init.js";
+import { escapeHtml, initAuthUI, notifySaveFailed, showToast } from "./app-shell.js";
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, defaultFinanceData, uid, fmtVnd, accountName, totalBalance } from "./finance-core.js";
+
+let data = defaultFinanceData();
+let loaded = false;
+let mode = "expense";
+
+function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+
+function accountOptionsHtml() {
+  if (!data.accounts.length) return `<option value="">No accounts yet</option>`;
+  return data.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("");
+}
+
+async function loadFinance() {
+  try {
+    const value = await loadData(STORAGE_KEY);
+    if (value) data = { ...defaultFinanceData(), ...value };
+  } catch (e) {
+    data = defaultFinanceData();
+  }
+  loaded = true;
+  render();
+}
+
+async function saveFinance() {
+  const ok = await saveData(STORAGE_KEY, data);
+  if (!ok) notifySaveFailed();
+}
+
+function addEntry(app) {
+  const amount = Number(app.querySelector("#qm-amount").value);
+  if (!amount) return;
+  const account = app.querySelector("#qm-account").value;
+  if (mode === "expense") {
+    const category = app.querySelector("#qm-category").value;
+    data.expenses.push({ id: uid(), date: todayDateStr(), category, amount, note: "", account });
+  } else {
+    data.income.push({ id: uid(), date: todayDateStr(), source: "Quick log", amount, account });
+  }
+  saveFinance();
+  showToast(`Saved — balance now ${fmtVnd(totalBalance(data))}`, "info");
+  render();
+}
+
+function recentEntries() {
+  const tagged = [
+    ...data.income.map(e => ({ ...e, kind: "income" })),
+    ...data.expenses.map(e => ({ ...e, kind: "expense" }))
+  ];
+  return tagged.sort((a, b) => b.date.localeCompare(a.date) || (b.id > a.id ? 1 : -1)).slice(0, 3);
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
+
+  const bal = totalBalance(data);
+  const recent = recentEntries();
+  const recentHtml = recent.length ? `
+    <ul class="recent-list">
+      ${recent.map(e => `<li><span>${e.kind === "expense" ? (CAT_LABEL[e.category] || "Other") : (e.source || "Income")}</span><span class="recent-amount ${e.kind}">${e.kind === "expense" ? "−" : "+"}${fmtVnd(e.amount)}</span></li>`).join("")}
+    </ul>
+  ` : "";
+
+  app.innerHTML = `
+    <p class="balance-label">Total balance</p>
+    <p class="balance-value ${bal < 0 ? "bad" : ""}">${fmtVnd(bal)}</p>
+
+    <div class="mode-toggle">
+      <button class="mode-btn ${mode === "expense" ? "active-expense" : ""}" data-mode="expense" type="button">− Expense</button>
+      <button class="mode-btn ${mode === "income" ? "active-income" : ""}" data-mode="income" type="button">+ Income</button>
+    </div>
+
+    <div class="log-field amount"><label for="qm-amount">Amount (VND)</label><input type="number" id="qm-amount" placeholder="0" /></div>
+    ${mode === "expense" ? `
+      <div class="log-field"><label for="qm-category">Category</label>
+        <select id="qm-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
+      </div>
+    ` : ""}
+    <div class="log-field"><label for="qm-account">Account</label><select id="qm-account">${accountOptionsHtml()}</select></div>
+
+    <button class="btn" id="qm-save-btn" type="button" style="width:100%;">Save</button>
+
+    ${recentHtml}
+    <a class="full-link" href="./finance.html">Full Finance &rarr;</a>
+  `;
+
+  app.querySelectorAll("[data-mode]").forEach(btn => {
+    btn.addEventListener("click", () => { mode = btn.dataset.mode; render(); });
+  });
+  app.querySelector("#qm-save-btn").addEventListener("click", () => addEntry(app));
+}
+
+initAuthUI({
+  onSignedIn: () => { if (!loaded) loadFinance(); },
+  onSignedOut: () => { loaded = false; }
+});
+</script>
+<script src="./pwa-init.js"></script>
+</body>
+</html>
