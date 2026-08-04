@@ -55,6 +55,7 @@
   .rows-table th { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: 600; }
   .rows-table td.num { font-family: var(--font-mono); text-align: right; white-space: nowrap; }
   .rows-table tr[data-cat] td:first-child { border-left: 3px solid var(--cat-color, var(--cat-life)); padding-left: 8px; }
+  .cat-edit { font-family: var(--font); font-size: var(--fs-2xs); color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 2px; padding: 3px 4px; }
   .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
   .row-del:hover { color: var(--danger); }
   .rows-empty { font-size: var(--fs-sm); color: var(--ink-soft); font-style: italic; margin: 0 0 12px; }
@@ -246,6 +247,14 @@ function addExpense(app) {
 
 function removeEntry(list, id) {
   data[list] = data[list].filter(e => e.id !== id);
+  saveFinance();
+  render();
+}
+
+function setEntryCategory(list, id, category) {
+  const entry = data[list].find(e => e.id === id);
+  if (!entry) return;
+  entry.category = category;
   saveFinance();
   render();
 }
@@ -464,9 +473,10 @@ function render() {
     <div class="budget-row">
       <div class="budget-top">
         <span class="budget-name">${escapeHtml(sub.name)}${sub.link ? ` <a href="${escapeHtml(sub.link)}" target="_blank" rel="noopener" title="${escapeHtml(sub.link)}">&#8599;</a>` : ""}${ended ? " (ended)" : ""}</span>
-        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}${endLabel ? ` &middot; ${endLabel}` : ""}</span>
+        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}${endLabel ? ` &middot; ${endLabel}` : ""}</span>
       </div>
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <select class="cat-edit" data-cat-edit="subscriptions" data-id="${sub.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === sub.category ? "selected" : ""}>${c.label}</option>`).join("")}</select>
         <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${statusLabel}</span>
         <button class="row-del" data-del="subscriptions" data-id="${sub.id}" type="button" style="margin-left:auto;">&times;</button>
       </div>
@@ -489,7 +499,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td>${CAT_LABEL[e.category] || "Other"}</td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
@@ -687,6 +697,9 @@ function render() {
   });
   app.querySelectorAll("[data-budget-cat]").forEach(input => {
     input.addEventListener("change", () => setBudget(input.dataset.budgetCat, input.value));
+  });
+  app.querySelectorAll("[data-cat-edit]").forEach(sel => {
+    sel.addEventListener("change", () => setEntryCategory(sel.dataset.catEdit, sel.dataset.id, sel.value));
   });
 
   const usdInput = app.querySelector("#conv-usd");
