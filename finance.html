@@ -41,7 +41,7 @@
   .log-field { display: flex; flex-direction: column; gap: 5px; }
   .log-field.wide { grid-column: 1 / -1; }
   .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); min-height: 2.2em; display: flex; align-items: flex-end; }
-  .log-field input[type="number"], .log-field input[type="text"], .log-field input[type="date"], .log-field select {
+  .log-field input[type="number"], .log-field input[type="text"], .log-field input[type="date"], .log-field input[type="month"], .log-field select {
     font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
     border: 1px solid var(--border); border-radius: 2px; padding: 9px 10px; width: 100%;
   }
@@ -181,6 +181,7 @@ function applyRecurringSubscriptions() {
   const mk = currentMonthKey();
   let changed = false;
   for (const sub of data.subscriptions) {
+    if (sub.endMonth && mk > sub.endMonth) continue;
     if (sub.lastLoggedMonth !== mk) {
       data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account });
       sub.lastLoggedMonth = mk;
@@ -254,8 +255,9 @@ function addSubscription(app) {
   const account = app.querySelector("#sub-account").value;
   const amount = Number(app.querySelector("#sub-amount").value);
   const dueDay = Number(app.querySelector("#sub-dueday").value) || null;
+  const endMonth = app.querySelector("#sub-end").value || null;
   if (!name || !amount) return;
-  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, lastLoggedMonth: null });
+  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, lastLoggedMonth: null });
   applyRecurringSubscriptions();
   saveFinance();
   render();
@@ -295,6 +297,7 @@ function calendarHtml() {
   const billsByDay = {};
   data.subscriptions.forEach(s => {
     if (!s.dueDay) return;
+    if (s.endMonth && mk > s.endMonth) return;
     (billsByDay[s.dueDay] ||= []).push(s);
   });
 
@@ -447,18 +450,26 @@ function render() {
     `;
   }).join("") : `<p class="rows-empty">No accounts yet — add one below (Card, Cash, Bank...).</p>`;
 
-  const subsHtml = data.subscriptions.length ? data.subscriptions.map(sub => `
+  const subsHtml = data.subscriptions.length ? data.subscriptions.map(sub => {
+    const ended = sub.endMonth && currentMonthKey() > sub.endMonth;
+    const endLabel = sub.endMonth ? `ends ${new Date(sub.endMonth + "-01").toLocaleString("en-US", { month: "short", year: "numeric" })}` : "";
+    let statusLabel;
+    if (ended) statusLabel = "ended";
+    else if (sub.lastLoggedMonth === currentMonthKey()) statusLabel = "logged this month";
+    else statusLabel = "logs next visit";
+    return `
     <div class="budget-row">
       <div class="budget-top">
-        <span class="budget-name">${escapeHtml(sub.name)}</span>
-        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}</span>
+        <span class="budget-name">${escapeHtml(sub.name)}${ended ? " (ended)" : ""}</span>
+        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}${endLabel ? ` &middot; ${endLabel}` : ""}</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${sub.lastLoggedMonth === currentMonthKey() ? "logged this month" : "logs next visit"}</span>
+        <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${statusLabel}</span>
         <button class="row-del" data-del="subscriptions" data-id="${sub.id}" type="button" style="margin-left:auto;">&times;</button>
       </div>
     </div>
-  `).join("") : `<p class="rows-empty">No recurring fees yet — add one below (Claude Pro, TryHackMe, etc).</p>`;
+  `;
+  }).join("") : `<p class="rows-empty">No recurring fees yet — add one below (Claude Pro, TryHackMe, etc).</p>`;
 
   const incomeRows = [...data.income].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
   const incomeHtml = incomeRows.length ? `
@@ -613,6 +624,7 @@ function render() {
             <div class="log-field"><label for="sub-account">Account</label><select id="sub-account">${accountOptionsHtml()}</select></div>
             <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="number" id="sub-amount" placeholder="0" /></div>
             <div class="log-field"><label for="sub-dueday">Due day (1-31)</label><input type="number" id="sub-dueday" placeholder="optional" min="1" max="31" /></div>
+            <div class="log-field"><label for="sub-end">Ends after (optional)</label><input type="month" id="sub-end" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
         </section>
