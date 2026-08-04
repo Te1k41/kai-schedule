@@ -30,33 +30,36 @@ tabs. Pick a day, then:
 Saves automatically, syncs across your devices. Nothing to commit/push —
 this one lives in the database, not in code.
 
-## Change roadmap tasks — code
+## Change roadmap tasks — also no code needed
 
-`roadmap.html` — search for `const PHASES = [`. Each phase looks like:
+Open `roadmap.html`, tap **Edit roadmap** near the top:
+- **Add/edit/delete a phase**: Edit/Delete buttons on each phase header,
+  plus an "Add a phase" form at the very bottom of the page.
+- **Add/edit/delete a task** within a phase: Edit/Delete on each task row,
+  plus an "Add task" form at the bottom of each phase's task list.
+- **Resources** (the collapsible "All links & prices" box): add/delete
+  only (name/url/cost/note) — no in-place edit, just remove and re-add if
+  you need to change one.
 
-```js
-{
-  id: "p1", title: "Foundations", weeks: "Weeks 1-3",
-  note: "Networking and Linux basics...",
-  tasks: [
-    { id: "p1-1", label: "Create a free TryHackMe account", detail: "..." },
-    ...
-  ]
-}
-```
+New accounts start with a small placeholder phase, not your real roadmap
+— your own account's real content was migrated in automatically the first
+time this shipped.
 
-- **Edit a task's text**: change its `label` or `detail` string.
-- **Add a task**: copy an existing `{ id: ..., label: ..., detail: ... }`
-  line, paste it in the `tasks` array, give it a **new unique `id`**
-  (e.g. `p1-7` if `p1-6` is the last one in that phase) — reusing an id
-  overwrites another task's saved checkmark.
-- **Add a whole phase**: copy a `{ id: "p6", ... }` block, change `id` to
-  something new (`p7`), fill in `title`/`weeks`/`note`/`tasks`.
-- Never reuse an `id` that used to mean something else — that's how
-  "already checked" progress is tracked per person.
+## Change the health/meal/workout plan — also no code needed
 
-Same `id`-safety rule applies to the `RESOURCES` array just below it
-(the collapsible "All links & prices" box).
+Open `health.html`, tap **Edit health plan** near the top:
+- **Stats** (age, goal weight, calories, etc.): one form at the top, tap
+  **Save stats**.
+- **Meals**: every day always has all 4 slots (breakfast/lunch/dinner/
+  snack) — tap **Edit** on any meal to change dish/ingredients/macros/
+  cost/prep, no add/delete needed since the slots always exist.
+- **Warm-up / cool-down**: add/delete only (name + time).
+- **Exercises**: full add/edit/delete (name/sets/rest/cue/scale).
+- **How to progress**: a plain textarea, autosaves as you type.
+- **Shopping list / ingredient prices**: add/delete only.
+
+Same migration behavior as Roadmap — your real content carried over
+automatically, new accounts get a small placeholder instead.
 
 ## Change finance categories — code
 
@@ -107,8 +110,11 @@ map of what's stored where (full detail in `CLAUDE.md` if you need it):
 |---|---|---|
 | Daily schedule | schedule.html "Edit schedule" | Yes, read-only |
 | Today's checkmarks | schedule.html checkboxes | No |
+| Roadmap phases/tasks/resources | roadmap.html "Edit roadmap" | No |
 | Roadmap progress | roadmap.html checkboxes | No |
 | Roadmap notes box | roadmap.html sidebar textarea | No |
+| Health/meal/workout plan | health.html "Edit health plan" | No |
+| Daily health log (weight/steps/etc) | health.html "Today's log" | No |
 | Income / expenses / budgets / accounts | finance.html / money.html | **No, private** |
 | Savings goals | finance.html "Savings goals" | Yes, read-only |
 | Recurring subscriptions | finance.html "Recurring subscriptions" | Yes, read-only |

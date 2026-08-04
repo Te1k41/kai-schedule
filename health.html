@@ -124,6 +124,10 @@
   .ref-note { font-size: var(--fs-xs); color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
 
   .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
+
+  .edit-toggle-row { margin: -18px 0 20px; }
+  .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px; }
+  .row-del:hover { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -149,7 +153,7 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed } from "./app-shell.js";
-import { MEALS } from "./meals-data.js";
+import { MEALS as REAL_MEALS } from "./meals-data.js";
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
@@ -166,84 +170,99 @@ const RULES = [
 
 const MEAL_SLOTS = [["breakfast","Breakfast","life"],["lunch","Lunch","life"],["dinner","Dinner","life"],["snack","Snack","life"]];
 
-const WARMUP = [
-  ["March in place", "30 sec"], ["Arm circles", "20 sec each way"], ["Hip circles", "20 sec each way"],
-  ["5 slow partial squats", "5 reps"], ["Shoulder rolls", "15 sec"]
-];
-const COOLDOWN = [
-  ["Doorway chest stretch", "20 sec"], ["Standing quad stretch", "20 sec each"],
-  ["Standing hamstring reach", "20 sec"], ["Cat-cow", "5 slow reps"], ["Child's pose", "30 sec"]
-];
-const EXERCISES = [
-  { name: "Wall Push-up", sets: "2 × 8-12", rest: "60-90s", cue: "Body straight; elbows ~45°; chest near wall", scale: "Easier: stand closer. Harder: feet back / incline." },
-  { name: "Assisted Squat", sets: "2 × 8-12", rest: "60-90s", cue: "Knees over toes; weight in heels; chest up", scale: "Easier: more hand support. Harder: free squat, 3s down." },
-  { name: "Glute Bridge", sets: "2 × 10-15", rest: "60-90s", cue: "Drive through heels; squeeze glutes; ribs down", scale: "Easier: partial lift. Harder: 2-3s pause / single leg." },
-  { name: "Superman Hold", sets: "2 × 20-30s", rest: "60s", cue: "Lift with back not neck; eyes down; small lift", scale: "Easier: chest+arms only. Harder: hold up to 45s." },
-  { name: "Dead Bug", sets: "2 × 6-8/side", rest: "60s", cue: "Low back pressed flat; move slow; exhale on extend", scale: "Easier: legs only. Harder: limbs closer to floor." },
-  { name: "Wall Sit", sets: "2 × 15-30s", rest: "60s", cue: "Knees over ankles; back flat on wall; breathe", scale: "Easier: don't slide as low. Harder: toward 90°, +time." }
-];
-const PROGRESSION = "1. Add reps first — creep up within the range each session (8 → 10 → 12).\n\n2. Once you hit the top of the range for 2 weeks, advance to a harder variation (see \"Scale → harder\").\n\n3. Log it below. Beat last week's number, even by one rep — that's progress.\n\n4. Too tired? Just warm-up + one set of wall push-ups. It still counts — keeps the streak alive.";
-
-const SHOPPING = {
-  "Protein": [
-    ["Eggs", "40 pcs", 3200, 128000], ["Chicken breast fillet", "1.2 kg", 72000, 86400],
-    ["Chicken thigh", "0.25 kg", 60000, 15000], ["Lean pork", "0.7 kg", 125000, 87500],
-    ["Ground pork", "0.25 kg", 125000, 31250], ["Lean beef", "0.1 kg", 260000, 26000],
-    ["Fish (tilapia/basa, cleaned)", "0.6 kg", 78000, 46800], ["White tofu", "6 block", 6000, 36000]
+// Real content, used only as the one-time seed for an account that's
+// already engaged with this page (see loadLog's grandfathering check).
+const DEFAULT_HEALTH_PLAN = {
+  stats: { age: "23", heightM: 1.65, goalWeight: "~60 kg", fatToLose: "~21 kg", dailyCalories: "1,800–1,900", proteinPerDay: "~130 g", lossRate: "0.4–0.7 kg/wk", timeline: "~9–12 months", monthlyFoodCost: "2,172,857" },
+  meals: REAL_MEALS,
+  warmup: [
+    ["March in place", "30 sec"], ["Arm circles", "20 sec each way"], ["Hip circles", "20 sec each way"],
+    ["5 slow partial squats", "5 reps"], ["Shoulder rolls", "15 sec"]
   ],
-  "Dairy": [["Unsweetened yogurt", "8 tub", 6000, 48000], ["Unsweetened milk", "1 · 1L carton", 34000, 34000]],
-  "Carbs": [
-    ["Rice", "1.5 kg", 22000, 33000], ["Glutinous rice", "0.2 kg", 30000, 6000],
-    ["Oats (500g pack)", "1 pack", 45000, 45000], ["Baguette", "3 loaf", 4000, 12000],
-    ["Rice noodles (pho/bun)", "1 pack", 15000, 15000]
+  cooldown: [
+    ["Doorway chest stretch", "20 sec"], ["Standing quad stretch", "20 sec each"],
+    ["Standing hamstring reach", "20 sec"], ["Cat-cow", "5 slow reps"], ["Child's pose", "30 sec"]
   ],
-  "Veg": [
-    ["Water spinach", "4 bunch", 8000, 32000], ["Cabbage", "1 head", 12000, 12000],
-    ["Mustard greens / broccoli", "3 bunch", 10000, 30000], ["Tomato", "0.5 kg", 18000, 9000],
-    ["Winter melon", "0.5 kg", 15000, 7500], ["Lettuce + cucumber", "0.4 kg", 18000, 7200]
+  exercises: [
+    { name: "Wall Push-up", sets: "2 × 8-12", rest: "60-90s", cue: "Body straight; elbows ~45°; chest near wall", scale: "Easier: stand closer. Harder: feet back / incline." },
+    { name: "Assisted Squat", sets: "2 × 8-12", rest: "60-90s", cue: "Knees over toes; weight in heels; chest up", scale: "Easier: more hand support. Harder: free squat, 3s down." },
+    { name: "Glute Bridge", sets: "2 × 10-15", rest: "60-90s", cue: "Drive through heels; squeeze glutes; ribs down", scale: "Easier: partial lift. Harder: 2-3s pause / single leg." },
+    { name: "Superman Hold", sets: "2 × 20-30s", rest: "60s", cue: "Lift with back not neck; eyes down; small lift", scale: "Easier: chest+arms only. Harder: hold up to 45s." },
+    { name: "Dead Bug", sets: "2 × 6-8/side", rest: "60s", cue: "Low back pressed flat; move slow; exhale on extend", scale: "Easier: legs only. Harder: limbs closer to floor." },
+    { name: "Wall Sit", sets: "2 × 15-30s", rest: "60s", cue: "Knees over ankles; back flat on wall; breathe", scale: "Easier: don't slide as low. Harder: toward 90°, +time." }
   ],
-  "Fruit": [["Banana", "1 bunch", 25000, 25000]],
-  "Seasoning": [["Garlic, lemongrass, ginger, onion", "1 set", 30000, 30000], ["Fish sauce, soy sauce, oil", "1 set", 40000, 40000]]
+  progression: "1. Add reps first — creep up within the range each session (8 → 10 → 12).\n\n2. Once you hit the top of the range for 2 weeks, advance to a harder variation (see \"Scale → harder\").\n\n3. Log it below. Beat last week's number, even by one rep — that's progress.\n\n4. Too tired? Just warm-up + one set of wall push-ups. It still counts — keeps the streak alive.",
+  shopping: {
+    "Protein": [
+      ["Eggs", "40 pcs", 3200, 128000], ["Chicken breast fillet", "1.2 kg", 72000, 86400],
+      ["Chicken thigh", "0.25 kg", 60000, 15000], ["Lean pork", "0.7 kg", 125000, 87500],
+      ["Ground pork", "0.25 kg", 125000, 31250], ["Lean beef", "0.1 kg", 260000, 26000],
+      ["Fish (tilapia/basa, cleaned)", "0.6 kg", 78000, 46800], ["White tofu", "6 block", 6000, 36000]
+    ],
+    "Dairy": [["Unsweetened yogurt", "8 tub", 6000, 48000], ["Unsweetened milk", "1 · 1L carton", 34000, 34000]],
+    "Carbs": [
+      ["Rice", "1.5 kg", 22000, 33000], ["Glutinous rice", "0.2 kg", 30000, 6000],
+      ["Oats (500g pack)", "1 pack", 45000, 45000], ["Baguette", "3 loaf", 4000, 12000],
+      ["Rice noodles (pho/bun)", "1 pack", 15000, 15000]
+    ],
+    "Veg": [
+      ["Water spinach", "4 bunch", 8000, 32000], ["Cabbage", "1 head", 12000, 12000],
+      ["Mustard greens / broccoli", "3 bunch", 10000, 30000], ["Tomato", "0.5 kg", 18000, 9000],
+      ["Winter melon", "0.5 kg", 15000, 7500], ["Lettuce + cucumber", "0.4 kg", 18000, 7200]
+    ],
+    "Fruit": [["Banana", "1 bunch", 25000, 25000]],
+    "Seasoning": [["Garlic, lemongrass, ginger, onion", "1 set", 30000, 30000], ["Fish sauce, soy sauce, oil", "1 set", 40000, 40000]]
+  },
+  prices: [
+    ["Egg", "3,200₫", "each"], ["Oats", "90₫", "per g"], ["Banana", "2,300₫", "each"],
+    ["Chicken breast", "72₫", "per g"], ["Chicken thigh (skinless)", "60₫", "per g"], ["Lean pork", "125₫", "per g"],
+    ["Ground pork", "125₫", "per g"], ["Lean beef", "260₫", "per g"], ["Fish (tilapia/basa)", "78₫", "per g"],
+    ["Tofu", "25₫", "per g"], ["Unsweetened yogurt", "6,000₫", "per 150g tub"], ["Unsweetened milk", "34₫", "per ml"],
+    ["Cooked rice", "9₫", "per g"], ["Glutinous rice", "30₫", "per g raw"], ["Baguette", "4,000₫", "per loaf"],
+    ["Rice noodles (pho/bun)", "5,000₫", "per serving"]
+  ]
 };
-const SHOPPING_TOTAL = 842650;
-const MONTHLY_FOOD_COST = 2172857;
 
-const PRICES = [
-  ["Egg", "3,200₫", "each"], ["Oats", "90₫", "per g"], ["Banana", "2,300₫", "each"],
-  ["Chicken breast", "72₫", "per g"], ["Chicken thigh (skinless)", "60₫", "per g"], ["Lean pork", "125₫", "per g"],
-  ["Ground pork", "125₫", "per g"], ["Lean beef", "260₫", "per g"], ["Fish (tilapia/basa)", "78₫", "per g"],
-  ["Tofu", "25₫", "per g"], ["Unsweetened yogurt", "6,000₫", "per 150g tub"], ["Unsweetened milk", "34₫", "per ml"],
-  ["Cooked rice", "9₫", "per g"], ["Glutinous rice", "30₫", "per g raw"], ["Baguette", "4,000₫", "per loaf"],
-  ["Rice noodles (pho/bun)", "5,000₫", "per serving"]
-];
+function placeholderMeals() {
+  const blank = { dish: "Example meal", ingredients: "List your ingredients here", cal: 0, protein: 0, cost: 0, prep: "How to prepare it." };
+  const m = {};
+  for (const d of DAYS) m[d] = { breakfast: { ...blank }, lunch: { ...blank }, dinner: { ...blank }, snack: { ...blank } };
+  return m;
+}
+const PLACEHOLDER_HEALTH_PLAN = {
+  stats: { age: "", heightM: 1.7, goalWeight: "", fatToLose: "", dailyCalories: "", proteinPerDay: "", lossRate: "", timeline: "", monthlyFoodCost: "" },
+  meals: placeholderMeals(),
+  warmup: [["Example warm-up move", "30 sec"]],
+  cooldown: [["Example cool-down move", "20 sec"]],
+  exercises: [{ name: "Example exercise", sets: "2 × 10", rest: "60s", cue: "How to do it", scale: "Easier/harder variations" }],
+  progression: "Describe how you'll progress this workout over time — edit this text.",
+  shopping: {},
+  prices: []
+};
 
-function computeDailyTotals() {
+function computeDailyTotals(meals) {
   const totals = {};
   for (const day of DAYS) {
-    const meals = MEALS[day];
+    const m = meals[day];
     totals[day] = ["breakfast", "lunch", "dinner", "snack"].reduce((acc, slot) => {
-      acc.cal += meals[slot].cal;
-      acc.protein += meals[slot].protein;
-      acc.cost += meals[slot].cost;
+      acc.cal += m[slot].cal;
+      acc.protein += m[slot].protein;
+      acc.cost += m[slot].cost;
       return acc;
     }, { cal: 0, protein: 0, cost: 0 });
   }
   return totals;
 }
-const DAILY_TOTALS = computeDailyTotals();
 
-const WEEK_TOTALS = DAYS.reduce((acc, d) => {
-  acc.cal += DAILY_TOTALS[d].cal;
-  acc.protein += DAILY_TOTALS[d].protein;
-  acc.cost += DAILY_TOTALS[d].cost;
-  return acc;
-}, { cal: 0, protein: 0, cost: 0 });
-const AVG_CAL_ACTUAL_PER_DAY = Math.round(WEEK_TOTALS.cal / DAYS.length);
-
-const HEIGHT_M = 1.65;
 const STORAGE_KEY = "health-tracker-log";
+const PLAN_KEY = "health-plan";
 let log = {};
+let plan = null;
 let loaded = false;
+let editMode = false;
+let editingMealKey = null;
+let editingExerciseIdx = null;
+let progressionSaveTimer = null;
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function todayAbbrev() { const d = new Date(); return DAYS[(d.getDay()+6)%7]; }
@@ -257,12 +276,20 @@ function latestWeight() {
 }
 
 async function loadLog() {
-  try {
-    const value = await loadData(STORAGE_KEY);
-    if (value) log = value;
-  } catch (e) {
-    log = {};
+  const [logValue, planValue] = await Promise.all([
+    loadData(STORAGE_KEY).catch(() => null),
+    loadData(PLAN_KEY).catch(() => null)
+  ]);
+  log = logValue || {};
+
+  if (planValue && planValue.stats) {
+    plan = planValue;
+  } else {
+    const hasEngagement = Object.keys(log).length > 0;
+    plan = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_HEALTH_PLAN : PLACEHOLDER_HEALTH_PLAN));
+    await savePlan();
   }
+
   loaded = true;
   render();
 }
@@ -270,6 +297,160 @@ async function loadLog() {
 async function saveLog() {
   const ok = await saveData(STORAGE_KEY, log);
   if (!ok) notifySaveFailed();
+}
+
+async function savePlan() {
+  const ok = await saveData(PLAN_KEY, plan);
+  if (!ok) notifySaveFailed();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  editingMealKey = null;
+  editingExerciseIdx = null;
+  render();
+}
+
+function saveStats(app) {
+  plan.stats = {
+    age: app.querySelector("#stat-age").value.trim(),
+    heightM: Number(app.querySelector("#stat-height").value) || plan.stats.heightM,
+    goalWeight: app.querySelector("#stat-goalweight").value.trim(),
+    fatToLose: app.querySelector("#stat-fattolose").value.trim(),
+    dailyCalories: app.querySelector("#stat-cal").value.trim(),
+    proteinPerDay: app.querySelector("#stat-protein").value.trim(),
+    lossRate: app.querySelector("#stat-lossrate").value.trim(),
+    timeline: app.querySelector("#stat-timeline").value.trim(),
+    monthlyFoodCost: app.querySelector("#stat-monthlyfood").value.trim()
+  };
+  savePlan();
+  render();
+}
+
+function startEditMeal(day, slot) {
+  editingMealKey = `${day}-${slot}`;
+  render();
+}
+function cancelEditMeal() {
+  editingMealKey = null;
+  render();
+}
+function saveEditMeal(app, day, slot) {
+  const dish = app.querySelector("#meal-edit-dish").value.trim();
+  const ingredients = app.querySelector("#meal-edit-ingredients").value.trim();
+  const cal = Number(app.querySelector("#meal-edit-cal").value) || 0;
+  const protein = Number(app.querySelector("#meal-edit-protein").value) || 0;
+  const cost = Number(app.querySelector("#meal-edit-cost").value) || 0;
+  const prep = app.querySelector("#meal-edit-prep").value.trim();
+  if (!dish) return;
+  plan.meals[day][slot] = { dish, ingredients, cal, protein, cost, prep };
+  editingMealKey = null;
+  savePlan();
+  render();
+}
+
+function addWarmup(app) {
+  const name = app.querySelector("#new-warmup-name").value.trim();
+  const time = app.querySelector("#new-warmup-time").value.trim();
+  if (!name) return;
+  plan.warmup.push([name, time]);
+  savePlan();
+  render();
+}
+function deleteWarmup(i) {
+  plan.warmup.splice(i, 1);
+  savePlan();
+  render();
+}
+function addCooldown(app) {
+  const name = app.querySelector("#new-cooldown-name").value.trim();
+  const time = app.querySelector("#new-cooldown-time").value.trim();
+  if (!name) return;
+  plan.cooldown.push([name, time]);
+  savePlan();
+  render();
+}
+function deleteCooldown(i) {
+  plan.cooldown.splice(i, 1);
+  savePlan();
+  render();
+}
+
+function startEditExercise(i) {
+  editingExerciseIdx = i;
+  render();
+}
+function cancelEditExercise() {
+  editingExerciseIdx = null;
+  render();
+}
+function saveEditExercise(app, i) {
+  const name = app.querySelector("#ex-edit-name").value.trim();
+  const sets = app.querySelector("#ex-edit-sets").value.trim();
+  const rest = app.querySelector("#ex-edit-rest").value.trim();
+  const cue = app.querySelector("#ex-edit-cue").value.trim();
+  const scale = app.querySelector("#ex-edit-scale").value.trim();
+  if (!name) return;
+  plan.exercises[i] = { name, sets, rest, cue, scale };
+  editingExerciseIdx = null;
+  savePlan();
+  render();
+}
+function deleteExercise(i) {
+  plan.exercises.splice(i, 1);
+  savePlan();
+  render();
+}
+function addExercise(app) {
+  const name = app.querySelector("#new-ex-name").value.trim();
+  const sets = app.querySelector("#new-ex-sets").value.trim();
+  const rest = app.querySelector("#new-ex-rest").value.trim();
+  const cue = app.querySelector("#new-ex-cue").value.trim();
+  const scale = app.querySelector("#new-ex-scale").value.trim();
+  if (!name) return;
+  plan.exercises.push({ name, sets, rest, cue, scale });
+  savePlan();
+  render();
+}
+
+function onProgressionInput(value) {
+  plan.progression = value;
+  clearTimeout(progressionSaveTimer);
+  progressionSaveTimer = setTimeout(() => savePlan(), 600);
+}
+
+function addShoppingItem(app) {
+  const cat = app.querySelector("#shop-cat").value.trim();
+  const name = app.querySelector("#shop-name").value.trim();
+  const qty = app.querySelector("#shop-qty").value.trim();
+  const unit = Number(app.querySelector("#shop-unit").value) || 0;
+  const total = Number(app.querySelector("#shop-total").value) || 0;
+  if (!cat || !name) return;
+  if (!plan.shopping[cat]) plan.shopping[cat] = [];
+  plan.shopping[cat].push([name, qty, unit, total]);
+  savePlan();
+  render();
+}
+function deleteShoppingItem(cat, i) {
+  plan.shopping[cat].splice(i, 1);
+  if (plan.shopping[cat].length === 0) delete plan.shopping[cat];
+  savePlan();
+  render();
+}
+
+function addPrice(app) {
+  const name = app.querySelector("#price-name").value.trim();
+  const price = app.querySelector("#price-value").value.trim();
+  const per = app.querySelector("#price-per").value.trim();
+  if (!name) return;
+  plan.prices.push([name, price, per]);
+  savePlan();
+  render();
+}
+function deletePrice(i) {
+  plan.prices.splice(i, 1);
+  savePlan();
+  render();
 }
 
 function readForm(app) {
@@ -292,7 +473,26 @@ function saveTodayEntry() {
   render();
 }
 
-function mealRowHtml(meal, slotLabel, cat) {
+function mealRowHtml(meal, slotLabel, cat, day, slotKey) {
+  if (editMode && editingMealKey === `${day}-${slotKey}`) {
+    return `
+      <div class="meal-row" style="--cat-color:${CAT_COLOR_VARS[cat]}">
+        <p class="meal-slot">${slotLabel}</p>
+        <div class="log-form">
+          <div class="log-field wide"><label for="meal-edit-dish">Dish</label><input type="text" id="meal-edit-dish" value="${escapeHtml(meal.dish)}" /></div>
+          <div class="log-field"><label for="meal-edit-cal">Calories</label><input type="number" id="meal-edit-cal" value="${meal.cal}" /></div>
+          <div class="log-field"><label for="meal-edit-protein">Protein (g)</label><input type="number" id="meal-edit-protein" value="${meal.protein}" /></div>
+          <div class="log-field"><label for="meal-edit-cost">Cost (VND)</label><input type="number" id="meal-edit-cost" value="${meal.cost}" /></div>
+          <div class="log-field wide"><label for="meal-edit-ingredients">Ingredients</label><input type="text" id="meal-edit-ingredients" value="${escapeHtml(meal.ingredients)}" /></div>
+          <div class="log-field wide"><label for="meal-edit-prep">Prep</label><textarea id="meal-edit-prep" rows="2">${escapeHtml(meal.prep)}</textarea></div>
+        </div>
+        <div class="log-save-row">
+          <button class="btn btn-small" data-action="save-meal" data-day="${day}" data-slot="${slotKey}" type="button">Save</button>
+          <button class="btn btn-ghost btn-small" data-action="cancel-edit-meal" type="button">Cancel</button>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div class="meal-row" style="--cat-color:${CAT_COLOR_VARS[cat]}">
       <div class="meal-top">
@@ -303,6 +503,7 @@ function mealRowHtml(meal, slotLabel, cat) {
         <summary></summary>
         <div class="meal-detail-body">${formatDetail(`Ingredients: ${meal.ingredients}\n\n${meal.prep}`)}</div>
       </details>
+      ${editMode ? `<button class="btn btn-ghost btn-small" data-action="edit-meal" data-day="${day}" data-slot="${slotKey}" type="button" style="margin-top:6px;">Edit</button>` : ""}
     </div>
   `;
 }
@@ -311,10 +512,20 @@ function render() {
   const app = document.getElementById("app");
   if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
 
+  const dailyTotals = computeDailyTotals(plan.meals);
+  const weekTotals = DAYS.reduce((acc, d) => {
+    acc.cal += dailyTotals[d].cal;
+    acc.protein += dailyTotals[d].protein;
+    acc.cost += dailyTotals[d].cost;
+    return acc;
+  }, { cal: 0, protein: 0, cost: 0 });
+  const avgCalPerDay = Math.round(weekTotals.cal / DAYS.length);
+  const shoppingTotal = Object.values(plan.shopping).flat().reduce((s, item) => s + Number(item[3] || 0), 0);
+
   const today = todayAbbrev();
   const todayEntry = log[todayDateStr()] || {};
   const weight = latestWeight();
-  const bmi = (weight / (HEIGHT_M * HEIGHT_M)).toFixed(1);
+  const bmi = (weight / (plan.stats.heightM * plan.stats.heightM)).toFixed(1);
 
   const historyDates = Object.keys(log).sort().reverse().slice(0, 10);
   const historyHtml = historyDates.length ? `
@@ -330,12 +541,12 @@ function render() {
   ` : `<p class="history-empty">No entries logged yet — save today's to start your history.</p>`;
 
   const daysHtml = DAYS.map(d => {
-    const m = MEALS[d];
-    const t = DAILY_TOTALS[d];
+    const m = plan.meals[d];
+    const t = dailyTotals[d];
     const isToday = d === today;
-    const mealsHtml = MEAL_SLOTS.map(([key, label, cat]) => mealRowHtml(m[key], label, cat)).join("");
+    const mealsHtml = MEAL_SLOTS.map(([key, label, cat]) => mealRowHtml(m[key], label, cat, d, key)).join("");
     return `
-      <details class="day-group" ${isToday ? "open" : ""}>
+      <details class="day-group" ${isToday || editMode ? "open" : ""}>
         <summary>
           <div class="day-header">
             <span class="day-title">${DAY_FULL[d]}${isToday ? " — today" : ""}</span>
@@ -350,58 +561,101 @@ function render() {
     `;
   }).join("");
 
-  const shoppingHtml = Object.entries(SHOPPING).map(([cat, items]) => `
-    <p class="cat-heading">${cat}</p>
+  const shoppingHtml = Object.entries(plan.shopping).map(([cat, items]) => `
+    <p class="cat-heading">${escapeHtml(cat)}</p>
     <table class="ref-table">
-      <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead>
+      <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th><th></th></tr></thead>
       <tbody>
-        ${items.map(([name, qty, unit, total]) => `<tr><td>${name}</td><td class="num">${qty}</td><td class="num">${unit.toLocaleString()}₫</td><td class="num">${total.toLocaleString()}₫</td></tr>`).join("")}
+        ${items.map(([name, qty, unit, total], i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(String(qty))}</td><td class="num">${Number(unit).toLocaleString()}₫</td><td class="num">${Number(total).toLocaleString()}₫</td><td>${editMode ? `<button class="row-del" data-action="delete-shopping" data-cat="${escapeHtml(cat)}" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
       </tbody>
     </table>
   `).join("");
 
   const pricesHtml = `
     <table class="ref-table">
-      <thead><tr><th>Ingredient</th><th>Price</th><th>Priced per</th></tr></thead>
+      <thead><tr><th>Ingredient</th><th>Price</th><th>Priced per</th><th></th></tr></thead>
       <tbody>
-        ${PRICES.map(([name, price, per]) => `<tr><td>${name}</td><td class="num">${price}</td><td>${per}</td></tr>`).join("")}
+        ${plan.prices.map(([name, price, per], i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(price)}</td><td>${escapeHtml(per)}</td><td>${editMode ? `<button class="row-del" data-action="delete-price" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
       </tbody>
     </table>
   `;
 
-  const exercisesHtml = EXERCISES.map((ex, i) => `
+  const exercisesHtml = plan.exercises.map((ex, i) => {
+    if (editMode && editingExerciseIdx === i) {
+      return `
+        <div class="exercise-row">
+          <div class="log-form">
+            <div class="log-field"><label for="ex-edit-name">Name</label><input type="text" id="ex-edit-name" value="${escapeHtml(ex.name)}" /></div>
+            <div class="log-field"><label for="ex-edit-sets">Sets</label><input type="text" id="ex-edit-sets" value="${escapeHtml(ex.sets)}" /></div>
+            <div class="log-field"><label for="ex-edit-rest">Rest</label><input type="text" id="ex-edit-rest" value="${escapeHtml(ex.rest)}" /></div>
+            <div class="log-field wide"><label for="ex-edit-cue">Cue</label><input type="text" id="ex-edit-cue" value="${escapeHtml(ex.cue)}" /></div>
+            <div class="log-field wide"><label for="ex-edit-scale">Scale (easier/harder)</label><input type="text" id="ex-edit-scale" value="${escapeHtml(ex.scale)}" /></div>
+          </div>
+          <div class="log-save-row">
+            <button class="btn btn-small" data-action="save-exercise" data-idx="${i}" type="button">Save</button>
+            <button class="btn btn-ghost btn-small" data-action="cancel-edit-exercise" type="button">Cancel</button>
+          </div>
+        </div>
+      `;
+    }
+    return `
     <div class="exercise-row">
       <div class="exercise-top">
         <span class="exercise-num">${i + 1}</span>
-        <span class="exercise-name">${ex.name}</span>
-        <span class="exercise-sets">${ex.sets} · rest ${ex.rest}</span>
+        <span class="exercise-name">${escapeHtml(ex.name)}</span>
+        <span class="exercise-sets">${escapeHtml(ex.sets)} · rest ${escapeHtml(ex.rest)}</span>
       </div>
-      <p class="exercise-cue">${ex.cue}</p>
-      <p class="exercise-scale">${ex.scale}</p>
+      <p class="exercise-cue">${escapeHtml(ex.cue)}</p>
+      <p class="exercise-scale">${escapeHtml(ex.scale)}</p>
+      ${editMode ? `
+        <div class="log-save-row" style="margin-top:8px; margin-bottom:0;">
+          <button class="btn btn-ghost btn-small" data-action="edit-exercise" data-idx="${i}" type="button">Edit</button>
+          <button class="btn btn-ghost btn-small" data-action="delete-exercise" data-idx="${i}" type="button">Delete</button>
+        </div>
+      ` : ""}
     </div>
-  `).join("");
+  `;
+  }).join("");
+
+  const statsHtml = editMode ? `
+    <div class="log-form">
+      <div class="log-field"><label for="stat-age">Age</label><input type="text" id="stat-age" value="${escapeHtml(plan.stats.age)}" /></div>
+      <div class="log-field"><label for="stat-height">Height (m)</label><input type="number" step="0.01" id="stat-height" value="${plan.stats.heightM}" /></div>
+      <div class="log-field"><label for="stat-goalweight">Goal weight</label><input type="text" id="stat-goalweight" value="${escapeHtml(plan.stats.goalWeight)}" /></div>
+      <div class="log-field"><label for="stat-fattolose">Fat to lose</label><input type="text" id="stat-fattolose" value="${escapeHtml(plan.stats.fatToLose)}" /></div>
+      <div class="log-field"><label for="stat-cal">Daily calories</label><input type="text" id="stat-cal" value="${escapeHtml(plan.stats.dailyCalories)}" /></div>
+      <div class="log-field"><label for="stat-protein">Protein / day</label><input type="text" id="stat-protein" value="${escapeHtml(plan.stats.proteinPerDay)}" /></div>
+      <div class="log-field"><label for="stat-lossrate">Loss rate</label><input type="text" id="stat-lossrate" value="${escapeHtml(plan.stats.lossRate)}" /></div>
+      <div class="log-field"><label for="stat-timeline">Timeline</label><input type="text" id="stat-timeline" value="${escapeHtml(plan.stats.timeline)}" /></div>
+      <div class="log-field"><label for="stat-monthlyfood">Monthly food cost (VND)</label><input type="text" id="stat-monthlyfood" value="${escapeHtml(plan.stats.monthlyFoodCost)}" /></div>
+    </div>
+    <div class="log-save-row"><button class="btn btn-small" id="save-stats-btn" type="button">Save stats</button></div>
+  ` : `
+    <div class="stats-grid">
+      <div class="stat"><p class="stat-label">Age</p><p class="stat-value small">${escapeHtml(plan.stats.age) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">Height</p><p class="stat-value small">${plan.stats.heightM}m</p></div>
+      <div class="stat"><p class="stat-label">Current weight</p><p class="stat-value">${weight} kg</p></div>
+      <div class="stat"><p class="stat-label">Goal weight</p><p class="stat-value">${escapeHtml(plan.stats.goalWeight) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">BMI</p><p class="stat-value">${bmi}</p></div>
+      <div class="stat"><p class="stat-label">Fat to lose</p><p class="stat-value small">${escapeHtml(plan.stats.fatToLose) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">Daily calories</p><p class="stat-value small">${escapeHtml(plan.stats.dailyCalories) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">Protein / day</p><p class="stat-value small">${escapeHtml(plan.stats.proteinPerDay) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">Loss rate</p><p class="stat-value small">${escapeHtml(plan.stats.lossRate) || "—"}</p></div>
+      <div class="stat"><p class="stat-label">Timeline</p><p class="stat-value small">${escapeHtml(plan.stats.timeline) || "—"}</p></div>
+    </div>
+  `;
 
   app.innerHTML = `
     <p class="eyebrow">Health</p>
     <h1>Phase 2 — Fat Loss</h1>
     <p class="subtitle">Goal: lose fat to a lean, defined body.</p>
+    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit health plan"}</button></div>
 
     <div class="layout">
       <div class="col-main">
 
         <section class="card">
-          <div class="stats-grid">
-            <div class="stat"><p class="stat-label">Age</p><p class="stat-value small">23</p></div>
-            <div class="stat"><p class="stat-label">Height</p><p class="stat-value small">1m65</p></div>
-            <div class="stat"><p class="stat-label">Current weight</p><p class="stat-value">${weight} kg</p></div>
-            <div class="stat"><p class="stat-label">Goal weight</p><p class="stat-value">~60 kg</p></div>
-            <div class="stat"><p class="stat-label">BMI</p><p class="stat-value">${bmi}</p></div>
-            <div class="stat"><p class="stat-label">Fat to lose</p><p class="stat-value small">~21 kg</p></div>
-            <div class="stat"><p class="stat-label">Daily calories</p><p class="stat-value small">1,800–1,900</p></div>
-            <div class="stat"><p class="stat-label">Protein / day</p><p class="stat-value small">~130 g</p></div>
-            <div class="stat"><p class="stat-label">Loss rate</p><p class="stat-value small">0.4–0.7 kg/wk</p></div>
-            <div class="stat"><p class="stat-label">Timeline</p><p class="stat-value small">~9–12 months</p></div>
-          </div>
+          ${statsHtml}
           <ol class="rules-list">
             ${RULES.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
           </ol>
@@ -447,27 +701,69 @@ function render() {
           <p class="subtitle" style="margin-bottom:6px;">3×/week (Mon · Wed · Fri) · ~25 min · 2 sets each, rest 60-90s, slow and controlled.</p>
           <p class="progress-note" style="margin-bottom:16px;">Muscle burn is OK. Sharp or joint pain means stop.</p>
           <p class="eyebrow">Warm-up · 2-3 min</p>
-          <ul class="prep-list">${WARMUP.map(([name, time]) => `<li><span>${name}</span><span class="prep-time">${time}</span></li>`).join("")}</ul>
+          <ul class="prep-list">${plan.warmup.map(([name, time], i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-warmup" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
+          ${editMode ? `
+            <div class="log-form">
+              <div class="log-field"><label for="new-warmup-name">New warm-up move</label><input type="text" id="new-warmup-name" placeholder="e.g. Jumping jacks" /></div>
+              <div class="log-field"><label for="new-warmup-time">Time</label><input type="text" id="new-warmup-time" placeholder="e.g. 30 sec" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-warmup-btn" type="button">Add</button></div>
+          ` : ""}
           <p class="eyebrow">Main workout — 2 sets each</p>
           ${exercisesHtml}
+          ${editMode ? `
+            <div class="log-form" style="margin-top:12px;">
+              <div class="log-field"><label for="new-ex-name">New exercise name</label><input type="text" id="new-ex-name" placeholder="e.g. Lunges" /></div>
+              <div class="log-field"><label for="new-ex-sets">Sets</label><input type="text" id="new-ex-sets" placeholder="e.g. 2 × 10" /></div>
+              <div class="log-field"><label for="new-ex-rest">Rest</label><input type="text" id="new-ex-rest" placeholder="e.g. 60s" /></div>
+              <div class="log-field wide"><label for="new-ex-cue">Cue</label><input type="text" id="new-ex-cue" placeholder="how to do it" /></div>
+              <div class="log-field wide"><label for="new-ex-scale">Scale</label><input type="text" id="new-ex-scale" placeholder="easier/harder variations" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-exercise-btn" type="button">Add exercise</button></div>
+          ` : ""}
           <p class="eyebrow" style="margin-top:16px;">Cool-down · 2-3 min</p>
-          <ul class="prep-list">${COOLDOWN.map(([name, time]) => `<li><span>${name}</span><span class="prep-time">${time}</span></li>`).join("")}</ul>
+          <ul class="prep-list">${plan.cooldown.map(([name, time], i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-cooldown" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
+          ${editMode ? `
+            <div class="log-form">
+              <div class="log-field"><label for="new-cooldown-name">New cool-down move</label><input type="text" id="new-cooldown-name" placeholder="e.g. Forward fold" /></div>
+              <div class="log-field"><label for="new-cooldown-time">Time</label><input type="text" id="new-cooldown-time" placeholder="e.g. 20 sec" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-cooldown-btn" type="button">Add</button></div>
+          ` : ""}
           <p class="eyebrow" style="margin-top:16px;">How to progress</p>
-          <div class="progress-note">${formatDetail(PROGRESSION)}</div>
+          ${editMode ? `<textarea id="progression-box" rows="5" style="width:100%; font-family:var(--font); font-size:var(--fs-base); color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;">${escapeHtml(plan.progression)}</textarea>` : `<div class="progress-note">${formatDetail(plan.progression)}</div>`}
         </section>
 
         <section class="card">
           <h2>Shopping list — 1 week</h2>
           <p class="subtitle" style="margin-bottom:16px;">Volatile items (eggs, pork) can swing ±10-15%. Wet markets are usually cheaper. Oats, sauces, and spices last several weeks.</p>
           ${shoppingHtml}
-          <div class="ref-total"><span>Weekly total</span><span>${SHOPPING_TOTAL.toLocaleString()}₫</span></div>
-          <p class="ref-note">Real food cost / month (~30 days, from daily averages): ~${MONTHLY_FOOD_COST.toLocaleString()}₫. Week one costs more because oats, sauces & spices last several weeks — later weeks are cheaper.</p>
+          <div class="ref-total"><span>Weekly total</span><span>${shoppingTotal.toLocaleString()}₫</span></div>
+          <p class="ref-note">Real food cost / month (~30 days, from daily averages): ~${escapeHtml(plan.stats.monthlyFoodCost) || "—"}₫. Week one costs more because oats, sauces & spices last several weeks — later weeks are cheaper.</p>
+          ${editMode ? `
+            <div class="log-form" style="margin-top:12px;">
+              <div class="log-field"><label for="shop-cat">Category</label><input type="text" id="shop-cat" placeholder="e.g. Protein" /></div>
+              <div class="log-field"><label for="shop-name">Item</label><input type="text" id="shop-name" placeholder="e.g. Eggs" /></div>
+              <div class="log-field"><label for="shop-qty">Qty</label><input type="text" id="shop-qty" placeholder="e.g. 40 pcs" /></div>
+              <div class="log-field"><label for="shop-unit">Unit price (VND)</label><input type="number" id="shop-unit" placeholder="0" /></div>
+              <div class="log-field"><label for="shop-total">Total (VND)</label><input type="number" id="shop-total" placeholder="0" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-shopping-btn" type="button">Add item</button></div>
+          ` : ""}
         </section>
 
         <section class="card">
           <h2>Ingredient prices</h2>
           <p class="subtitle" style="margin-bottom:16px;">How each meal's cost is built. Researched Jul 2026 (Bách Hóa Xanh / Kamereo / HCMC market).</p>
           ${pricesHtml}
+          ${editMode ? `
+            <div class="log-form" style="margin-top:12px;">
+              <div class="log-field"><label for="price-name">Ingredient</label><input type="text" id="price-name" placeholder="e.g. Egg" /></div>
+              <div class="log-field"><label for="price-value">Price</label><input type="text" id="price-value" placeholder="e.g. 3,200₫" /></div>
+              <div class="log-field"><label for="price-per">Priced per</label><input type="text" id="price-per" placeholder="e.g. each" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-price-btn" type="button">Add</button></div>
+          ` : ""}
         </section>
 
         <p class="footer">Prices and plan researched Jul 2026 — re-check before a big shop.</p>
@@ -476,11 +772,11 @@ function render() {
       <div class="col-side">
         <p class="eyebrow">This week</p>
         <div class="stat" style="padding:0; background:transparent; margin-bottom:16px;">
-          <p class="stat-value">${WEEK_TOTALS.cal.toLocaleString()} <span style="font-size:14px; color:var(--ink-soft);">kcal</span></p>
-          <p class="stat-label" style="margin-top:2px;">${WEEK_TOTALS.protein}g protein · ${WEEK_TOTALS.cost.toLocaleString()}₫ · 7 days</p>
+          <p class="stat-value">${weekTotals.cal.toLocaleString()} <span style="font-size:14px; color:var(--ink-soft);">kcal</span></p>
+          <p class="stat-label" style="margin-top:2px;">${weekTotals.protein}g protein · ${weekTotals.cost.toLocaleString()}₫ · 7 days</p>
         </div>
         <p class="eyebrow">Daily target</p>
-        <p class="subtitle" style="margin-bottom:16px;">~1,850 kcal &middot; ~130g protein &middot; avg ~${AVG_CAL_ACTUAL_PER_DAY.toLocaleString()} kcal actual/day</p>
+        <p class="subtitle" style="margin-bottom:16px;">${escapeHtml(plan.stats.dailyCalories) || "—"} kcal &middot; ${escapeHtml(plan.stats.proteinPerDay) || "—"} protein &middot; avg ~${avgCalPerDay.toLocaleString()} kcal actual/day</p>
         <p class="eyebrow">Remember</p>
         <p class="subtitle" style="margin:0;">Weigh weekly. Judge the 3-week trend, not any single day.</p>
       </div>
@@ -489,6 +785,63 @@ function render() {
 
   const saveBtn = app.querySelector("#save-log-btn");
   if (saveBtn) saveBtn.addEventListener("click", saveTodayEntry);
+
+  const editToggleBtn = app.querySelector("#edit-toggle-btn");
+  if (editToggleBtn) editToggleBtn.addEventListener("click", toggleEditMode);
+
+  const saveStatsBtn = app.querySelector("#save-stats-btn");
+  if (saveStatsBtn) saveStatsBtn.addEventListener("click", () => saveStats(app));
+
+  app.querySelectorAll('[data-action="edit-meal"]').forEach(el => {
+    el.addEventListener("click", () => startEditMeal(el.getAttribute("data-day"), el.getAttribute("data-slot")));
+  });
+  app.querySelectorAll('[data-action="save-meal"]').forEach(el => {
+    el.addEventListener("click", () => saveEditMeal(app, el.getAttribute("data-day"), el.getAttribute("data-slot")));
+  });
+  app.querySelectorAll('[data-action="cancel-edit-meal"]').forEach(el => {
+    el.addEventListener("click", cancelEditMeal);
+  });
+
+  const addWarmupBtn = app.querySelector("#add-warmup-btn");
+  if (addWarmupBtn) addWarmupBtn.addEventListener("click", () => addWarmup(app));
+  app.querySelectorAll('[data-action="delete-warmup"]').forEach(el => {
+    el.addEventListener("click", () => deleteWarmup(Number(el.getAttribute("data-item"))));
+  });
+  const addCooldownBtn = app.querySelector("#add-cooldown-btn");
+  if (addCooldownBtn) addCooldownBtn.addEventListener("click", () => addCooldown(app));
+  app.querySelectorAll('[data-action="delete-cooldown"]').forEach(el => {
+    el.addEventListener("click", () => deleteCooldown(Number(el.getAttribute("data-item"))));
+  });
+
+  app.querySelectorAll('[data-action="edit-exercise"]').forEach(el => {
+    el.addEventListener("click", () => startEditExercise(Number(el.getAttribute("data-idx"))));
+  });
+  app.querySelectorAll('[data-action="delete-exercise"]').forEach(el => {
+    el.addEventListener("click", () => deleteExercise(Number(el.getAttribute("data-idx"))));
+  });
+  app.querySelectorAll('[data-action="save-exercise"]').forEach(el => {
+    el.addEventListener("click", () => saveEditExercise(app, Number(el.getAttribute("data-idx"))));
+  });
+  app.querySelectorAll('[data-action="cancel-edit-exercise"]').forEach(el => {
+    el.addEventListener("click", cancelEditExercise);
+  });
+  const addExerciseBtn = app.querySelector("#add-exercise-btn");
+  if (addExerciseBtn) addExerciseBtn.addEventListener("click", () => addExercise(app));
+
+  const progressionBox = app.querySelector("#progression-box");
+  if (progressionBox) progressionBox.addEventListener("input", () => onProgressionInput(progressionBox.value));
+
+  app.querySelectorAll('[data-action="delete-shopping"]').forEach(el => {
+    el.addEventListener("click", () => deleteShoppingItem(el.getAttribute("data-cat"), Number(el.getAttribute("data-item"))));
+  });
+  const addShoppingBtn = app.querySelector("#add-shopping-btn");
+  if (addShoppingBtn) addShoppingBtn.addEventListener("click", () => addShoppingItem(app));
+
+  app.querySelectorAll('[data-action="delete-price"]').forEach(el => {
+    el.addEventListener("click", () => deletePrice(Number(el.getAttribute("data-item"))));
+  });
+  const addPriceBtn = app.querySelector("#add-price-btn");
+  if (addPriceBtn) addPriceBtn.addEventListener("click", () => addPrice(app));
 }
 
 initAuthUI({

@@ -43,11 +43,29 @@ kai-schedule/
     each block's `start` time string)
   - `schedule-blocks` → `{ Mon: [...blocks], Tue: [...], ..., Sun: [...] }`, each
     block `{ id, start, end, cat, label, note, detail }` — **user-editable in-app**
-    now (schedule.html's "Edit schedule" toggle), not hardcoded. First load for a
-    new user seeds from `schedule-data.js`'s `defaultWeekSeed()` as a starting
-    example, then it's fully theirs to edit.
+    (schedule.html's "Edit schedule" toggle), not hardcoded. A brand-new account
+    seeds from `schedule-data.js`'s `genericWeekSeed()` — abstract placeholder
+    blocks, never the owner's real content. `defaultWeekSeed()` (the owner's real
+    schedule, built from `weekdayTemplate()`/`weekendTemplate()`) is no longer
+    wired to any seeding path; it's kept only for reference.
   - `soc-roadmap-progress` → `{ taskId: true, ... }`
   - `roadmap-notes` → plain string (free-text scratch box on roadmap.html)
+  - `roadmap-phases` → `{ phases: [...], resources: [...] }`, same shapes as the
+    old static `DEFAULT_PHASES`/`DEFAULT_RESOURCES` consts in roadmap.html —
+    **user-editable in-app** ("Edit roadmap" toggle: add/edit/delete phases and
+    tasks, add/delete resources). Seed logic: if this account already has
+    `soc-roadmap-progress` or `roadmap-notes` data (i.e. it's the pre-migration
+    owner), seed from the real `DEFAULT_PHASES`/`DEFAULT_RESOURCES` — exact task
+    ids preserved so existing checkmarks still match. Otherwise seed a small
+    obviously-placeholder phase (`PLACEHOLDER_PHASES`/`PLACEHOLDER_RESOURCES`).
+  - `health-plan` → `{ stats, meals, warmup, cooldown, exercises, progression,
+    shopping, prices }` — **user-editable in-app** (health.html's "Edit health
+    plan" toggle). Same grandfathering pattern as roadmap-phases: seeds from the
+    real `DEFAULT_HEALTH_PLAN` (built from `meals-data.js` + the old hardcoded
+    workout/shopping/price consts) if this account already has `health-tracker-log`
+    entries, otherwise a small placeholder (`PLACEHOLDER_HEALTH_PLAN`). The daily
+    log itself (`health-tracker-log`, weight/steps/water/sleep/etc, keyed by date)
+    is unrelated and untouched by this.
   - `finance-data` → `{ income[], expenses[], budgets{}, accounts[] }` — private,
     never shared
   - `savings-goals` → `[{ id, name, target, saved, link }]` — split out of
@@ -57,11 +75,10 @@ kai-schedule/
     The recurring expense entries a subscription auto-logs each month still land
     in the private `finance-data.expenses`, only the subscription *definitions*
     are shareable.
-- `weekdayTemplate()`/`weekendTemplate()`/`defaultWeekSeed()` in `schedule-data.js`
-  are now only used as the **seed** for a first-time user's `schedule-blocks` doc,
-  not read live — `schedule.html`/`now.html` read the Firestore doc afterward.
-  `PHASES` in roadmap.html is still a static array (roadmap content isn't
-  user-editable, only task-completion is).
+- Only `schedule-blocks`, `savings-goals`, and `subscriptions-list` are ever
+  shared (via the pairing system below). `roadmap-phases` and `health-plan` are
+  per-account but **not** shared with a partner — private to each person even
+  though they're no longer hardcoded.
 
 ## Sharing with a second person (self-serve pairing, no rooms/passwords)
 Finance stays fully private per person. Only `savings-goals`, `subscriptions-list`,
