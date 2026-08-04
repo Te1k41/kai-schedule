@@ -143,22 +143,24 @@ const PHASES = [
       { id: "p1-3", label: "Finish Pre Security: How the Web Works", detail: "HTTP requests/responses, DNS, and client-server basics.\n\nDone when: you can trace what happens between typing a URL and a page loading, step by step." },
       { id: "p1-4", label: "Finish Pre Security: Linux Fundamentals (Parts 1-3)", detail: "Command line basics, file permissions, navigating a Linux filesystem.\n\nDone when: you're comfortable in a terminal without looking up every command." },
       { id: "p1-5", label: "Finish Pre Security: Windows Fundamentals", detail: "Windows OS basics, the registry, Event Viewer, user accounts — the Windows-side counterpart to the Linux module.\n\nDone when: you know where to find basic system and security logs on Windows." },
-      { id: "p1-6", label: "Complete the full Pre Security path badge", detail: "All modules above, plus any remaining ones in the path.\n\nDone when: TryHackMe shows the path at 100% and awards the badge." }
+      { id: "p1-6", label: "Complete the full Pre Security path badge", detail: "All modules above, plus any remaining ones in the path.\n\nDone when: TryHackMe shows the path at 100% and awards the badge." },
+      { id: "p1-7", label: "Optional: OverTheWire Bandit for extra Linux reps", detail: "Free, no signup needed beyond SSH: overthewire.org/wargames/bandit — 34 levels of pure command-line drilling.\n\nGood to run alongside Pre Security, or while waiting on money for TryHackMe Premium later." },
+      { id: "p1-8", label: "Optional: picoCTF for beginner CTF practice", detail: "Free, always-open archive: picoctf.org.\n\nGood once Bandit starts feeling easy — first taste of CTF-style problem solving." }
     ]
   },
   {
     id: "p2", title: "Security+", weeks: "Weeks 3-11",
     note: "The one cert that gets you past CV filters.",
     tasks: [
-      { id: "p2-1", label: "Save Professor Messer's free SY0-701 course", detail: "Find it at professormesser.com — free, no signup needed. Bookmark the full playlist.\n\nThis is your primary study track for the rest of this phase." },
+      { id: "p2-1", label: "Save Professor Messer's free SY0-701 course", detail: "professormesser.com/security-plus/sy0-701 — free, no signup needed. Bookmark the full playlist plus his free pop quizzes on the same site.\n\nThis is your primary study track for the rest of this phase." },
       { id: "p2-2", label: "Study Domain 1: General Security Concepts", detail: "Security controls, the CIA triad, zero trust, and foundational vocabulary.\n\nDone when: you've watched every Domain 1 video and have your own written notes." },
       { id: "p2-3", label: "Study Domain 2: Threats, Vulnerabilities & Mitigations", detail: "Malware types, attack techniques, and how to mitigate them — the biggest domain by exam weight.\n\nDone when: notes are complete and you can name 5 mitigation techniques from memory." },
       { id: "p2-4", label: "Study Domain 3: Security Architecture", detail: "Network and system architecture, cloud concepts, secure design.\n\nDone when: your notes cover every video in this domain." },
       { id: "p2-5", label: "Study Domain 4: Security Operations", detail: "Incident response, monitoring, and day-to-day SOC-relevant material — the most directly useful domain for the actual job.\n\nDone when: notes are complete." },
       { id: "p2-6", label: "Study Domain 5: Security Program Management", detail: "Governance, risk management, and compliance — the most 'management' domain.\n\nDone when: notes are complete, even if it's the least interesting one." },
-      { id: "p2-7", label: "Start daily practice questions", detail: "A short daily habit, not a one-time task — this one is meant to stay 'in progress' for a while.\n\nDone when: it's a habit you've kept for at least a week straight." },
-      { id: "p2-8", label: "Score 85%+ on two full practice exams in a row", detail: "Take full-length, timed practice exams — not just topic quizzes.\n\nDone when: you hit 85%+ twice back to back, not just once." },
-      { id: "p2-9", label: "Book the exam voucher", detail: "~$425, bought directly through CompTIA or an authorized reseller.\n\nDone when: you have a confirmed exam date on the calendar." },
+      { id: "p2-7", label: "Start daily practice questions", detail: "Professor Messer's pop quizzes (free, same site) work for this. A short daily habit, not a one-time task — this one is meant to stay 'in progress' for a while.\n\nDone when: it's a habit you've kept for at least a week straight." },
+      { id: "p2-8", label: "Score 85%+ on two full practice exams in a row", detail: "Take full-length, timed practice exams — not just topic quizzes. If free pop quizzes stop cutting it, Messer sells a practice-exam bundle, but try free first.\n\nDone when: you hit 85%+ twice back to back, not just once." },
+      { id: "p2-9", label: "Book the exam voucher", detail: "$439 direct from CompTIA (comptia.org). Cheaper via authorized resellers: Professor Messer ~$395, Training Camp ~$373. This is the one purchase in the whole roadmap you actually can't skip.\n\nDone when: you have a confirmed exam date on the calendar." },
       { id: "p2-10", label: "Sit the Security+ exam", detail: "Done when: you've taken it — pass or fail, this task closes either way.\n\nIf you don't pass, the retake is a new task, not a redo of this one." }
     ]
   },
@@ -166,13 +168,14 @@ const PHASES = [
     id: "p3", title: "SOC Hands-On", weeks: "Weeks 6-16, alongside Security+",
     note: "This is where you actually learn the job.",
     tasks: [
-      { id: "p3-1", label: "Start TryHackMe's SOC Level 1 path", detail: "A dedicated path built around real SOC tools — Splunk, Wireshark, SIEM alert triage.\n\nDone when: you've started at least the first room." },
-      { id: "p3-2", label: "Create a free LetsDefend account", detail: "Sign up at letsdefend.io.\n\nThis is where you'll practice real alert triage against a live-feeling SIEM." },
+      { id: "p3-1", label: "Start TryHackMe's SOC Level 1 path", detail: "A dedicated path built around real SOC tools — Splunk, Wireshark, SIEM alert triage. tryhackme.com/path/outline/soclevel1\n\nMost of this path needs TryHackMe Premium (~$8-14/mo, cheaper on an annual plan) — free rooms mostly ran out back in Foundations.\n\nDone when: you've started at least the first room." },
+      { id: "p3-2", label: "Create a free LetsDefend account", detail: "Sign up at letsdefend.io — free tier gives 15 alert investigations/month, plenty to start.\n\nThis is where you'll practice real alert triage against a live-feeling SIEM." },
       { id: "p3-3", label: "Complete 5 LetsDefend alert-triage scenarios", detail: "Pick 5 alerts from the queue and investigate each to a verdict — true positive or false positive.\n\nDone when: you've closed 5, with your own notes on each." },
-      { id: "p3-4", label: "Finish Splunk Fundamentals 1 (free)", detail: "Splunk's own free intro course — search basics, SPL fundamentals.\n\nMost SOC tooling assumes this baseline, so it's worth doing properly, not skimming." },
-      { id: "p3-5", label: "Learn the top 10 MITRE ATT&CK techniques", detail: "Pick the 10 most common techniques (phishing, credential dumping, PowerShell abuse, etc.) and learn what each looks like in logs.\n\nDone when: you can name the technique from a log snippet, not just recite the list." },
+      { id: "p3-4", label: "Finish Splunk Fundamentals 1 (free)", detail: "splunk.com/en_us/training/free-courses — start with the free 'Intro to Splunk' pair before Fundamentals 1 itself. Search basics, SPL fundamentals.\n\nMost SOC tooling assumes this baseline, so it's worth doing properly, not skimming." },
+      { id: "p3-5", label: "Learn the top 10 MITRE ATT&CK techniques", detail: "attack.mitre.org — free reference, not a course. Pick the 10 most common techniques (phishing, credential dumping, PowerShell abuse, etc.) and learn what each looks like in logs.\n\nDone when: you can name the technique from a log snippet, not just recite the list." },
       { id: "p3-6", label: "Finish TryHackMe SOC Level 1 path", detail: "All rooms in the path complete.\n\nThis is the core hands-on credential for this phase." },
-      { id: "p3-7", label: "Complete 10 more LetsDefend scenarios", detail: "10 more beyond the first 5 — 15 total.\n\nBy now you should be faster and more confident per scenario. Notice that, it's real progress." }
+      { id: "p3-7", label: "Complete 10 more LetsDefend scenarios", detail: "10 more beyond the first 5 — 15 total.\n\nBy now you should be faster and more confident per scenario. Notice that, it's real progress." },
+      { id: "p3-8", label: "Optional: Blue Team Labs Online (BTLO) for extra investigations", detail: "blueteamlabs.online — free tier gives 15 labs and 10 hrs/month lab time. Good second source of investigations alongside LetsDefend, different scenarios to write up for the portfolio phase." }
     ]
   },
   {
