@@ -144,13 +144,17 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, initAuthUI, notifySaveFailed } from "./app-shell.js";
-import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance } from "./finance-core.js";
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, defaultGoals, defaultSubscriptions, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance } from "./finance-core.js";
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
 const EGG_COST_VND = 3200;
 const TRYHACKME_MONTHLY_USD = 14;
+const SAVINGS_KEY = "savings-goals";
+const SUBS_KEY = "subscriptions-list";
 
 let data = defaultFinanceData();
+let goals = defaultGoals();
+let subscriptions = defaultSubscriptions();
 let loaded = false;
 let rate = { usdToVnd: null, updatedAt: null };
 let markupPct = Number(localStorage.getItem("finance-usd-markup") ?? 11.7);
@@ -166,34 +170,64 @@ function fmtUsd(n) { return rate.usdToVnd ? "$" + (n / rate.usdToVnd).toFixed(2)
 function fmtBoth(n) { const usd = fmtUsd(n); return usd ? `${fmtVnd(n)} (${usd})` : fmtVnd(n); }
 
 async function loadFinance() {
-  try {
-    const value = await loadData(STORAGE_KEY);
-    if (value) data = { ...defaultFinanceData(), ...value };
-  } catch (e) {
-    data = defaultFinanceData();
+  const [financeValue, goalsValue, subsValue] = await Promise.all([
+    loadData(STORAGE_KEY).catch(() => null),
+    loadData(SAVINGS_KEY).catch(() => null),
+    loadData(SUBS_KEY).catch(() => null)
+  ]);
+  data = financeValue ? { ...defaultFinanceData(), ...financeValue } : defaultFinanceData();
+
+  // One-time migration: goals/subscriptions used to live inside finance-data.
+  if (goalsValue) {
+    goals = goalsValue;
+  } else if (financeValue && Array.isArray(financeValue.goals) && financeValue.goals.length) {
+    goals = financeValue.goals;
+    await saveGoals();
+  } else {
+    goals = defaultGoals();
   }
+  if (subsValue) {
+    subscriptions = subsValue;
+  } else if (financeValue && Array.isArray(financeValue.subscriptions) && financeValue.subscriptions.length) {
+    subscriptions = financeValue.subscriptions;
+    await saveSubscriptions();
+  } else {
+    subscriptions = defaultSubscriptions();
+  }
+
   loaded = true;
-  const logged = applyRecurringSubscriptions();
-  if (logged) await saveFinance();
+  await applyRecurringSubscriptions();
   render();
 }
 
-function applyRecurringSubscriptions() {
+async function applyRecurringSubscriptions() {
   const mk = currentMonthKey();
-  let changed = false;
-  for (const sub of data.subscriptions) {
+  let subsChanged = false, expensesChanged = false;
+  for (const sub of subscriptions) {
     if (sub.endMonth && mk > sub.endMonth) continue;
     if (sub.lastLoggedMonth !== mk) {
       data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account });
       sub.lastLoggedMonth = mk;
-      changed = true;
+      subsChanged = true;
+      expensesChanged = true;
     }
   }
-  return changed;
+  if (subsChanged) await saveSubscriptions();
+  if (expensesChanged) await saveFinance();
 }
 
 async function saveFinance() {
   const ok = await saveData(STORAGE_KEY, data);
+  if (!ok) notifySaveFailed();
+}
+
+async function saveGoals() {
+  const ok = await saveData(SAVINGS_KEY, goals);
+  if (!ok) notifySaveFailed();
+}
+
+async function saveSubscriptions() {
+  const ok = await saveData(SUBS_KEY, subscriptions);
   if (!ok) notifySaveFailed();
 }
 
@@ -246,20 +280,29 @@ function addExpense(app) {
 }
 
 function removeEntry(list, id) {
-  data[list] = data[list].filter(e => e.id !== id);
-  saveFinance();
+  if (list === "goals") {
+    goals = goals.filter(e => e.id !== id);
+    saveGoals();
+  } else if (list === "subscriptions") {
+    subscriptions = subscriptions.filter(e => e.id !== id);
+    saveSubscriptions();
+  } else {
+    data[list] = data[list].filter(e => e.id !== id);
+    saveFinance();
+  }
   render();
 }
 
 function setEntryCategory(list, id, category) {
-  const entry = data[list].find(e => e.id === id);
+  const arr = list === "subscriptions" ? subscriptions : data[list];
+  const entry = arr.find(e => e.id === id);
   if (!entry) return;
   entry.category = category;
-  saveFinance();
+  if (list === "subscriptions") saveSubscriptions(); else saveFinance();
   render();
 }
 
-function addSubscription(app) {
+async function addSubscription(app) {
   const name = app.querySelector("#sub-name").value.trim();
   const category = app.querySelector("#sub-category").value;
   const account = app.querySelector("#sub-account").value;
@@ -268,9 +311,9 @@ function addSubscription(app) {
   const endMonth = app.querySelector("#sub-end").value || null;
   const link = app.querySelector("#sub-link").value.trim();
   if (!name || !amount) return;
-  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, link, lastLoggedMonth: null });
-  applyRecurringSubscriptions();
-  saveFinance();
+  subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, link, lastLoggedMonth: null });
+  await saveSubscriptions();
+  await applyRecurringSubscriptions();
   render();
 }
 
@@ -306,7 +349,7 @@ function calendarHtml() {
     monthExpenseTotal += Number(e.amount || 0);
   });
   const billsByDay = {};
-  data.subscriptions.forEach(s => {
+  subscriptions.forEach(s => {
     if (!s.dueDay) return;
     if (s.endMonth && mk > s.endMonth) return;
     (billsByDay[s.dueDay] ||= []).push(s);
@@ -366,16 +409,16 @@ function addGoal(app) {
   const saved = parseAmount(app.querySelector("#goal-saved").value);
   const link = app.querySelector("#goal-link").value.trim();
   if (!name || !target) return;
-  data.goals.push({ id: uid(), name, target, saved, link });
-  saveFinance();
+  goals.push({ id: uid(), name, target, saved, link });
+  saveGoals();
   render();
 }
 
 function bumpGoal(id, delta) {
-  const g = data.goals.find(g => g.id === id);
+  const g = goals.find(g => g.id === id);
   if (!g) return;
   g.saved = Math.max(0, g.saved + delta);
-  saveFinance();
+  saveGoals();
   render();
 }
 
@@ -444,9 +487,9 @@ function render() {
   const incomeTotal = monthTotal(data.income);
   const expenseTotal = monthTotal(data.expenses);
   const net = incomeTotal - expenseTotal;
-  const goalTotalTarget = data.goals.reduce((s, g) => s + g.target, 0);
-  const goalTotalSaved = data.goals.reduce((s, g) => s + g.saved, 0);
-  const subTotal = data.subscriptions.reduce((s, sub) => s + sub.amount, 0);
+  const goalTotalTarget = goals.reduce((s, g) => s + g.target, 0);
+  const goalTotalSaved = goals.reduce((s, g) => s + g.saved, 0);
+  const subTotal = subscriptions.reduce((s, sub) => s + sub.amount, 0);
   const totalBalanceVnd = totalBalance(data);
 
   const accountsHtml = data.accounts.length ? data.accounts.map(a => {
@@ -462,7 +505,7 @@ function render() {
     `;
   }).join("") : `<p class="rows-empty">No accounts yet — add one below (Card, Cash, Bank...).</p>`;
 
-  const subsHtml = data.subscriptions.length ? data.subscriptions.map(sub => {
+  const subsHtml = subscriptions.length ? subscriptions.map(sub => {
     const ended = sub.endMonth && currentMonthKey() > sub.endMonth;
     const endLabel = sub.endMonth ? `ends ${new Date(sub.endMonth + "-01").toLocaleString("en-US", { month: "short", year: "numeric" })}` : "";
     let statusLabel;
@@ -524,7 +567,7 @@ function render() {
     `;
   }).join("");
 
-  const goalsHtml = data.goals.length ? data.goals.map(g => {
+  const goalsHtml = goals.length ? goals.map(g => {
     const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
     return `
       <div class="goal-card">

@@ -1,4 +1,36 @@
-import { signIn, signOutUser, watchAuth } from "./firebase-init.js";
+import { signIn, signOutUser, watchAuth, loadData, saveData } from "./firebase-init.js";
+
+export function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+export function toMinutes(str) { const [h, m] = str.split(":").map(Number); return h * 60 + m; }
+export function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+export function nowClockStr() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+export function todayAbbrev(days) { return days[(new Date().getDay() + 6) % 7]; }
+
+export function findCurrentBlock(blocks, nowMin) {
+  return blocks.find(b => {
+    const s = toMinutes(b.start), e = toMinutes(b.end);
+    return e <= s ? (nowMin >= s || nowMin < e) : (nowMin >= s && nowMin < e);
+  }) || null;
+}
+
+export const SCHEDULE_KEY = "schedule-blocks";
+
+// Loads the signed-in user's editable schedule, seeding it once from
+// defaultBuilder() (a () => {Mon:[...],...,Sun:[...]} function) the first
+// time this user has no schedule-blocks doc yet.
+export async function loadOrSeedSchedule(defaultBuilder) {
+  const value = await loadData(SCHEDULE_KEY).catch(() => null);
+  if (value) return value;
+  const seeded = defaultBuilder();
+  for (const day of Object.keys(seeded)) {
+    seeded[day] = seeded[day].map(b => ({ id: uid(), note: "", detail: "", ...b }));
+  }
+  await saveData(SCHEDULE_KEY, seeded);
+  return seeded;
+}
 
 export function escapeHtml(str) {
   const d = document.createElement("div");

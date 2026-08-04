@@ -68,24 +68,25 @@
   </div>
 
 <script type="module">
-import { escapeHtml, formatDetail, initAuthUI } from "./app-shell.js";
-import { DAYS, weekdayTemplate, weekendTemplate } from "./schedule-data.js";
+import { escapeHtml, formatDetail, initAuthUI, nowMinutes, nowClockStr, todayAbbrev, findCurrentBlock, loadOrSeedSchedule } from "./app-shell.js";
+import { DAYS, defaultWeekSeed } from "./schedule-data.js";
 
-function todayAbbrev() { return DAYS[(new Date().getDay() + 6) % 7]; }
-function toMinutes(str) { const [h, m] = str.split(":").map(Number); return h * 60 + m; }
-function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
-function nowClockStr() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+let loaded = false;
+let weekBlocks = null;
+
+async function loadAndRender() {
+  weekBlocks = await loadOrSeedSchedule(defaultWeekSeed);
+  loaded = true;
+  render();
+}
 
 function render() {
   const app = document.getElementById("app");
-  const today = todayAbbrev();
-  const isWeekend = today === "Sat" || today === "Sun";
-  const blocks = isWeekend ? weekendTemplate(today) : weekdayTemplate(today);
+  if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
+  const today = todayAbbrev(DAYS);
+  const blocks = weekBlocks[today] || [];
   const nm = nowMinutes();
-  const current = blocks.find(b => {
-    const s = toMinutes(b.start), e = toMinutes(b.end);
-    return e <= s ? (nm >= s || nm < e) : (nm >= s && nm < e);
-  });
+  const current = findCurrentBlock(blocks, nm);
 
   app.innerHTML = `
     <p class="now-clock">It's <strong>${nowClockStr()}</strong></p>
@@ -106,11 +107,11 @@ function render() {
 }
 
 initAuthUI({
-  onSignedIn: () => { render(); },
-  onSignedOut: () => {}
+  onSignedIn: () => { if (!loaded) loadAndRender(); },
+  onSignedOut: () => { loaded = false; }
 });
 
-setInterval(() => { if (document.getElementById("app").style.display !== "none") render(); }, 30000);
+setInterval(() => { if (loaded && document.getElementById("app").style.display !== "none") render(); }, 30000);
 </script>
 <script src="./pwa-init.js"></script>
 </body>

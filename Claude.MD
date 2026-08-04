@@ -30,14 +30,69 @@ kai-schedule/
 
 ## How it works
 - `firebase-init.js` exports `signIn`, `signOutUser`, `watchAuth`, `loadData(key)`,
-  `saveData(key, value)`. Both pages import from it as an ES module.
+  `saveData(key, value)`, `loadPartnerData(otherUid, key)` (read-only cross-user read,
+  gated by Firestore rules — see Sharing below). Pages import from it as an ES module.
+- `app-shell.js` also exports shared helpers now: `uid()`, `toMinutes`/`nowMinutes`/
+  `nowClockStr`/`todayAbbrev(days)`, `findCurrentBlock(blocks, nowMin)`, and
+  `loadOrSeedSchedule(defaultBuilder)` (loads the signed-in user's editable schedule,
+  seeding it once from `defaultBuilder()` if they don't have one yet).
 - Each page shows a **sign-in gate**; after Google sign-in, `watchAuth` reveals
   the app and loads that user's data.
 - Data is stored per-user at Firestore path `users/{uid}/data/{key}`.
-  - schedule key: `schedule-today` → `{ date, checked }` (resets when the date changes)
-  - roadmap key: `soc-roadmap-progress` → `{ taskId: true, ... }`
-- Editable content lives as plain JS arrays near the top of each page's
-  `<script>`: `weekdayTemplate()` / `WORKOUTS` in schedule.html, `PHASES` in roadmap.html.
+  - `schedule-today` → `{ date, checked }` (resets when the date changes, keyed by
+    each block's `start` time string)
+  - `schedule-blocks` → `{ Mon: [...blocks], Tue: [...], ..., Sun: [...] }`, each
+    block `{ id, start, end, cat, label, note, detail }` — **user-editable in-app**
+    now (schedule.html's "Edit schedule" toggle), not hardcoded. First load for a
+    new user seeds from `schedule-data.js`'s `defaultWeekSeed()` as a starting
+    example, then it's fully theirs to edit.
+  - `soc-roadmap-progress` → `{ taskId: true, ... }`
+  - `roadmap-notes` → plain string (free-text scratch box on roadmap.html)
+  - `finance-data` → `{ income[], expenses[], budgets{}, accounts[] }` — private,
+    never shared
+  - `savings-goals` → `[{ id, name, target, saved, link }]` — split out of
+    `finance-data` specifically so it can be shared read-only (see below)
+  - `subscriptions-list` → `[{ id, name, category, account, amount, dueDay,
+    endMonth, link, lastLoggedMonth }]` — also split out for the same reason.
+    The recurring expense entries a subscription auto-logs each month still land
+    in the private `finance-data.expenses`, only the subscription *definitions*
+    are shareable.
+- `weekdayTemplate()`/`weekendTemplate()`/`defaultWeekSeed()` in `schedule-data.js`
+  are now only used as the **seed** for a first-time user's `schedule-blocks` doc,
+  not read live — `schedule.html`/`now.html` read the Firestore doc afterward.
+  `PHASES` in roadmap.html is still a static array (roadmap content isn't
+  user-editable, only task-completion is).
+
+## Sharing with a second person (girlfriend's account)
+Finance stays fully private per person. Only `savings-goals`, `subscriptions-list`,
+and `schedule-blocks` are shared, **read-only, mutually**, via `partner.html`.
+This shipped in two steps:
+- **Done:** the data split above, `partner.html` itself, and `loadPartnerData()`.
+  `partner.html` has a `PARTNER_UID` map (currently empty/commented) — if the
+  signed-in user isn't in it, the page just says "not set up yet" rather than
+  attempting a read Firestore would reject anyway.
+- **Pending — needs both people's Firebase Auth UIDs** (Firebase Console →
+  Authentication → Users, once she's signed in once):
+  1. Fill in `partner.html`'s `PARTNER_UID` map with the real two UIDs.
+  2. Paste this into Firebase Console → Firestore Database → Rules → Publish
+     (replacing the current rules below — there's no `firestore.rules` file in
+     this repo, rules only live in the Console):
+     ```
+     rules_version = '2';
+     service cloud.firestore {
+       match /databases/{database}/documents {
+         match /users/{userId}/data/{key} {
+           allow read, write: if request.auth != null && request.auth.uid == userId;
+           allow read: if request.auth != null
+             && key in ['schedule-blocks', 'savings-goals', 'subscriptions-list']
+             && (
+               (request.auth.uid == 'KAI_UID_HERE' && userId == 'GF_UID_HERE') ||
+               (request.auth.uid == 'GF_UID_HERE' && userId == 'KAI_UID_HERE')
+             );
+         }
+       }
+     }
+     ```
 
 ## Firebase (already configured)
 - Project id: `kai-schedule-731c0`
@@ -45,7 +100,9 @@ kai-schedule/
   security comes from Firestore rules, not from hiding the key).
 - **Enabled:** Google sign-in provider; Cloud Firestore (production mode).
 - **Authorized domain added:** `te1k41.github.io`
-- **Firestore rules** (locks all data to its owner):
+- **Firestore rules** (currently live — locks all data to its owner; see
+  "Sharing with a second person" above for the pending update that adds
+  mutual read-only access to a few keys):
   ```
   rules_version = '2';
   service cloud.firestore {
@@ -93,4 +150,6 @@ Wake 6:30 → 06:30 workout, 07:10 shower, 07:35 breakfast, 08:00–12:00 work,
 - Add a custom favicon (currently 404s — harmless).
 - Optional: push notifications / reminders (would need a service worker or an
   external service; out of scope for pure static hosting).
-- Optional: let the schedule blocks be user-editable in-app instead of in code.
+- Finish the sharing rollout: get both people's Firebase Auth UIDs, fill in
+  `partner.html`'s `PARTNER_UID` map, publish the updated Firestore rules —
+  see "Sharing with a second person" above.

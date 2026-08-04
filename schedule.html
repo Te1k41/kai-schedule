@@ -90,6 +90,20 @@
 
   .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
 
+  .edit-toggle-row { margin: -18px 0 20px; }
+  .block-edit-controls { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; align-self: center; }
+  .block-form { padding: 16px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
+  .log-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .log-field { display: flex; flex-direction: column; gap: 5px; }
+  .log-field.wide { grid-column: 1 / -1; }
+  .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+  .log-field input, .log-field select, .log-field textarea {
+    font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
+    border: 1px solid var(--border); border-radius: 2px; padding: 9px 10px; width: 100%; resize: vertical;
+  }
+  .log-field input:focus-visible, .log-field select:focus-visible, .log-field textarea:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
+  .log-save-row { display: flex; align-items: center; gap: 14px; }
+
   @media (max-width: 860px) {
     .layout { grid-template-columns: 1fr; gap: 20px; }
     .col-side { position: static; order: -1; }
@@ -118,47 +132,84 @@
 
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
-import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed } from "./app-shell.js";
-import { DAYS, DAY_FULL, weekdayTemplate, weekendTemplate } from "./schedule-data.js";
+import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed, uid, toMinutes, nowMinutes, nowClockStr, todayAbbrev, findCurrentBlock, loadOrSeedSchedule, SCHEDULE_KEY } from "./app-shell.js";
+import { DAYS, DAY_FULL, defaultWeekSeed } from "./schedule-data.js";
 
 const CAT_TAGS = { work: "Work", study: "Study", fitness: "Train", life: "Life" };
 const CAT_COLOR_VARS = { work: "var(--cat-work)", study: "var(--cat-study)", fitness: "var(--cat-fitness)", life: "var(--cat-life)" };
 
 const STORAGE_KEY = "schedule-today";
+let weekBlocks = null;
 let checked = {};
 let loaded = false;
+let editMode = false;
+let editingBlockId = null;
 
-function todayIndex() { return (new Date().getDay() + 6) % 7; }
-function todayAbbrev() { return DAYS[todayIndex()]; }
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 
-let selectedDay = todayAbbrev();
+let selectedDay = todayAbbrev(DAYS);
 
-function toMinutes(str) { const [h,m] = str.split(":").map(Number); return h*60+m; }
-function nowMinutes() { const d = new Date(); return d.getHours()*60 + d.getMinutes(); }
-function nowClockStr() { const d = new Date(); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
-
-async function loadState() {
-  try {
-    const value = await loadData(STORAGE_KEY);
-    if (value) {
-      checked = (value.date === todayDateStr()) ? (value.checked || {}) : {};
-    }
-  } catch (e) {
-    checked = {};
-  }
+async function loadAll() {
+  const [scheduleValue, checkedValue] = await Promise.all([
+    loadOrSeedSchedule(defaultWeekSeed),
+    loadData(STORAGE_KEY).catch(() => null)
+  ]);
+  weekBlocks = scheduleValue;
+  checked = (checkedValue && checkedValue.date === todayDateStr()) ? (checkedValue.checked || {}) : {};
   loaded = true;
   render();
 }
 
-async function saveState() {
+async function saveChecked() {
   const ok = await saveData(STORAGE_KEY, { date: todayDateStr(), checked });
+  if (!ok) notifySaveFailed();
+}
+
+async function saveSchedule() {
+  const ok = await saveData(SCHEDULE_KEY, weekBlocks);
   if (!ok) notifySaveFailed();
 }
 
 function toggleBlock(start) {
   checked[start] = !checked[start];
-  saveState();
+  saveChecked();
+  render();
+}
+
+function startEditBlock(id) {
+  editingBlockId = id;
+  render();
+}
+
+function cancelEdit() {
+  editingBlockId = null;
+  render();
+}
+
+function saveBlockForm(app) {
+  const start = app.querySelector("#blk-start").value;
+  const end = app.querySelector("#blk-end").value;
+  const cat = app.querySelector("#blk-cat").value;
+  const label = app.querySelector("#blk-label").value.trim();
+  const note = app.querySelector("#blk-note").value.trim();
+  const detail = app.querySelector("#blk-detail").value.trim();
+  if (!start || !end || !label) return;
+  const dayBlocks = weekBlocks[selectedDay];
+  if (editingBlockId) {
+    const b = dayBlocks.find(x => x.id === editingBlockId);
+    if (b) Object.assign(b, { start, end, cat, label, note, detail });
+  } else {
+    dayBlocks.push({ id: uid(), start, end, cat, label, note, detail });
+  }
+  dayBlocks.sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+  editingBlockId = null;
+  saveSchedule();
+  render();
+}
+
+function deleteBlock(id) {
+  weekBlocks[selectedDay] = weekBlocks[selectedDay].filter(b => b.id !== id);
+  saveSchedule();
   render();
 }
 
@@ -166,22 +217,18 @@ function render() {
   const app = document.getElementById("app");
   if (!loaded) { app.innerHTML = '<p class="eyebrow">Loading…</p>'; return; }
 
-  const isWeekend = selectedDay === "Sat" || selectedDay === "Sun";
-  const isToday = selectedDay === todayAbbrev();
+  const isToday = selectedDay === todayAbbrev(DAYS);
 
   const tabsHtml = DAYS.map(d => `
-    <button class="day-tab${d===selectedDay ? " active" : ""}${d===todayAbbrev() ? " is-today" : ""}" data-action="select-day" data-day="${d}">${d}</button>
+    <button class="day-tab${d===selectedDay ? " active" : ""}${d===todayAbbrev(DAYS) ? " is-today" : ""}" data-action="select-day" data-day="${d}">${d}</button>
   `).join("");
 
   let leftHtml = "";
   let rightHtml = "";
 
-  const blocks = isWeekend ? weekendTemplate(selectedDay) : weekdayTemplate(selectedDay);
+  const blocks = weekBlocks[selectedDay] || [];
   const nm = nowMinutes();
-  const current = isToday ? blocks.find(b => {
-    const s = toMinutes(b.start), e = toMinutes(b.end);
-    return e <= s ? (nm >= s || nm < e) : (nm >= s && nm < e);
-  }) : null;
+  const current = isToday ? findCurrentBlock(blocks, nm) : null;
 
   if (isToday) {
     leftHtml = `
@@ -200,7 +247,7 @@ function render() {
   rightHtml = blocks.map(b => {
     const isCurrent = current && b.start === current.start;
     const isChecked = isToday && !!checked[b.start];
-    const interactive = isToday;
+    const interactive = isToday && !editMode;
     const id = `chk-${b.start}`;
     const textInner = `
       <p class="block-time"><span class="block-tag">${CAT_TAGS[b.cat]}</span> · ${b.start}–${b.end}${isCurrent ? '<span class="now-badge">Now</span>' : ""}</p>
@@ -217,19 +264,50 @@ function render() {
       </details>
     ` : "";
     const checkboxHtml = interactive ? `<input type="checkbox" id="${id}" data-action="toggle-block" data-start="${b.start}" ${isChecked ? "checked" : ""} />` : "";
+    const editControls = editMode ? `
+      <div class="block-edit-controls">
+        <button class="btn btn-ghost btn-small" data-action="edit-block" data-id="${b.id}" type="button">Edit</button>
+        <button class="btn btn-ghost btn-small" data-action="delete-block" data-id="${b.id}" type="button">Delete</button>
+      </div>
+    ` : "";
     return `
       <div class="block${isCurrent ? " current" : ""}" style="--cat-color:${CAT_COLOR_VARS[b.cat]}">
         ${checkboxHtml}
         <div class="block-body">${textHtml}${noteHtml}${detailHtml}</div>
+        ${editControls}
       </div>
     `;
   }).join("");
+
+  if (editMode) {
+    const editing = editingBlockId ? blocks.find(b => b.id === editingBlockId) : null;
+    rightHtml += `
+      <div class="block-form">
+        <p class="eyebrow" style="margin-top:20px;">${editing ? "Edit block" : `Add a block to ${DAY_FULL[selectedDay]}`}</p>
+        <div class="log-form">
+          <div class="log-field"><label for="blk-start">Start</label><input type="time" id="blk-start" value="${editing ? editing.start : ""}" /></div>
+          <div class="log-field"><label for="blk-end">End</label><input type="time" id="blk-end" value="${editing ? editing.end : ""}" /></div>
+          <div class="log-field"><label for="blk-cat">Category</label>
+            <select id="blk-cat">${Object.entries(CAT_TAGS).map(([k, v]) => `<option value="${k}" ${editing && editing.cat === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+          </div>
+          <div class="log-field wide"><label for="blk-label">Label</label><input type="text" id="blk-label" value="${editing ? escapeHtml(editing.label) : ""}" placeholder="e.g. Deep work" /></div>
+          <div class="log-field wide"><label for="blk-note">Note (optional)</label><input type="text" id="blk-note" value="${editing ? escapeHtml(editing.note || "") : ""}" /></div>
+          <div class="log-field wide"><label for="blk-detail">Full breakdown (optional)</label><textarea id="blk-detail" rows="3">${editing ? escapeHtml(editing.detail || "") : ""}</textarea></div>
+        </div>
+        <div class="log-save-row">
+          <button class="btn" id="save-block-btn" type="button">${editing ? "Save changes" : "Add block"}</button>
+          ${editing ? `<button class="btn btn-ghost btn-small" id="cancel-edit-btn" type="button">Cancel</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
 
   app.innerHTML = `
     <p class="eyebrow">Schedule</p>
     <h1>Your Weekday Timetable</h1>
     <p class="subtitle">Job, training, meals, and rest — every day of the week, mapped out.</p>
     <div class="day-tabs">${tabsHtml}</div>
+    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit schedule"}</button></div>
     <div class="layout">
       <div class="col-main">${rightHtml}</div>
       <div class="col-side">${leftHtml}</div>
@@ -238,7 +316,7 @@ function render() {
   `;
 
   app.querySelectorAll('[data-action="select-day"]').forEach(el => {
-    el.addEventListener("click", () => { selectedDay = el.getAttribute("data-day"); render(); });
+    el.addEventListener("click", () => { selectedDay = el.getAttribute("data-day"); editingBlockId = null; render(); });
   });
   app.querySelectorAll('[data-action="toggle-block"]').forEach(el => {
     el.addEventListener("change", () => toggleBlock(el.getAttribute("data-start")));
@@ -251,10 +329,21 @@ function render() {
       det.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   });
+  app.querySelector("#edit-toggle-btn").addEventListener("click", () => { editMode = !editMode; editingBlockId = null; render(); });
+  app.querySelectorAll('[data-action="edit-block"]').forEach(el => {
+    el.addEventListener("click", () => startEditBlock(el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="delete-block"]').forEach(el => {
+    el.addEventListener("click", () => deleteBlock(el.getAttribute("data-id")));
+  });
+  const saveBlockBtn = app.querySelector("#save-block-btn");
+  if (saveBlockBtn) saveBlockBtn.addEventListener("click", () => saveBlockForm(app));
+  const cancelEditBtn = app.querySelector("#cancel-edit-btn");
+  if (cancelEditBtn) cancelEditBtn.addEventListener("click", cancelEdit);
 }
 
 initAuthUI({
-  onSignedIn: () => { if (!loaded) loadState(); },
+  onSignedIn: () => { if (!loaded) loadAll(); },
   onSignedOut: () => { loaded = false; }
 });
 

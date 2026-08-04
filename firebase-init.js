@@ -68,6 +68,19 @@ export async function loadData(key) {
   }
 }
 
+// Reads a value stored under `key` for a DIFFERENT user (read-only sharing —
+// Firestore rules decide whether this is allowed; returns null if not).
+export async function loadPartnerData(otherUid, key) {
+  try {
+    const ref = doc(db, "users", otherUid, "data", key);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data().value : null;
+  } catch (e) {
+    console.error("loadPartnerData failed for", otherUid, key, e);
+    return null;
+  }
+}
+
 // Saves a JSON-serializable value under `key` for the signed-in user.
 export async function saveData(key, value) {
   const user = auth.currentUser;

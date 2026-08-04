@@ -48,6 +48,14 @@ export function weekdayTemplate(day) {
   ];
 }
 
+export function defaultWeekSeed() {
+  const week = {};
+  for (const d of DAYS) {
+    week[d] = (d === "Sat" || d === "Sun") ? weekendTemplate(d) : weekdayTemplate(d);
+  }
+  return week;
+}
+
 export function weekendTemplate(day) {
   const m = MEALS[day];
   if (day === "Sat") {

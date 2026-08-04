@@ -1,3 +1,5 @@
+export { uid } from "./app-shell.js";
+
 export const STORAGE_KEY = "finance-data";
 
 export const CATEGORIES = [
@@ -12,11 +14,15 @@ export const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]
 export const CAT_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.key, c.color]));
 
 export function defaultFinanceData() {
-  return { income: [], expenses: [], budgets: {}, goals: [], subscriptions: [], accounts: [] };
+  return { income: [], expenses: [], budgets: {}, accounts: [] };
 }
 
-export function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+export function defaultGoals() {
+  return [];
+}
+
+export function defaultSubscriptions() {
+  return [];
 }
 
 export function fmtVnd(n) {
