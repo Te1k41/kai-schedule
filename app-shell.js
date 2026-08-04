@@ -89,6 +89,8 @@ export function applyThemeValues(theme) {
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute("content", theme.vermillion);
 
+  try { localStorage.setItem("cached-theme", JSON.stringify(theme)); } catch (e) {}
+
   applyIconTheme(theme);
 }
 
