@@ -188,7 +188,12 @@ const PHASES = [
       { id: "p3-5", label: "Learn the top 10 MITRE ATT&CK techniques", detail: "attack.mitre.org — free reference, not a course. Pick the 10 most common techniques (phishing, credential dumping, PowerShell abuse, etc.) and learn what each looks like in logs.\n\nDone when: you can name the technique from a log snippet, not just recite the list." },
       { id: "p3-6", label: "Finish TryHackMe SOC Level 1 path", detail: "All rooms in the path complete.\n\nThis is the core hands-on credential for this phase." },
       { id: "p3-7", label: "Complete 10 more LetsDefend scenarios", detail: "10 more beyond the first 5 — 15 total.\n\nBy now you should be faster and more confident per scenario. Notice that, it's real progress." },
-      { id: "p3-8", label: "Optional: Blue Team Labs Online (BTLO) for extra investigations", detail: "blueteamlabs.online — free tier gives 15 labs and 10 hrs/month lab time. Good second source of investigations alongside LetsDefend, different scenarios to write up for the portfolio phase." }
+      { id: "p3-8", label: "Optional: Blue Team Labs Online (BTLO) for extra investigations", detail: "blueteamlabs.online — free tier gives 15 labs and 10 hrs/month lab time. Good second source of investigations alongside LetsDefend, different scenarios to write up for the portfolio phase." },
+      { id: "p3-9", label: "Learn the OWASP Top 10", detail: "owasp.org/www-project-top-ten — free. Pulled straight from a live VNPT-IT security engineer posting's own list of attack types (alongside DDoS, Malware, Phishing) — this isn't generic, it's literally what VN employers list.\n\nDone when: you can name all 10 and explain one exploit example for each." },
+      { id: "p3-10", label: "Get hands-on with Nmap", detail: "TryHackMe's Nmap room — free/mostly free. Vulnerability-scanning tool named in real VN SOC/security-engineer postings alongside Nessus and Nexpose (those two are paid enterprise tools, not worth a home task — Nmap is the free one that matters).\n\nDone when: you can run and explain a basic scan without looking up every flag." },
+      { id: "p3-11", label: "Learn firewall / IDS-IPS / VPN basics", detail: "TryHackMe network security content covers this. Matches a real VNPT/Viettel JD requirement almost word for word: NextGen firewalls, IPS/IDS, VPN, WAF.\n\nDone when: you can explain what each of those four does and why a SOC analyst needs to read their logs." },
+      { id: "p3-12", label: "Try the ELK stack alongside Splunk", detail: "elastic.co/training — free. VN job postings name Splunk, ELK, and QRadar in the same breath as 'the SIEM' — Splunk's paid, QRadar's enterprise-only, but ELK is free and what smaller VN shops actually run day to day.\n\nDone when: you've run a basic search/dashboard in ELK, same as you did in Splunk." },
+      { id: "p3-13", label: "Optional: Intro to Malware Analysis", detail: "TryHackMe's Intro to Malware Analysis room — free. VN JDs mention malware detection/analysis/reverse engineering; this is just enough to speak to it in an interview, not a specialization — full reverse engineering is its own deep track, not needed here." }
     ]
   },
   {
@@ -207,12 +212,23 @@ const PHASES = [
     id: "p5", title: "Apply", weeks: "Month 4 onward",
     note: "Tier 1 SOC Analyst and Junior Security Analyst roles.",
     tasks: [
-      { id: "p5-1", label: "List 15-20 target companies", detail: "Mix of company sizes. Include the PwC/EY/Bosch/Noventiq-style firms already known to hire entry-level SOC roles in VN, plus a few others you find.\n\nDone when: the list exists somewhere you'll actually revisit." },
+      { id: "p5-1", label: "List 15-20 target companies", detail: "Mix of company sizes. Include the PwC/EY/Bosch/Noventiq-style firms already known to hire entry-level SOC roles in VN, plus VN-domestic cybersecurity firms actively building SOC teams: Viettel Cyber Security, CMC Infosec, VNPT-IT, FPT IS — friendlier to entry-level than the Big 4, plus a few others you find.\n\nDone when: the list exists somewhere you'll actually revisit." },
       { id: "p5-2", label: "Send first 5 applications", detail: "Tailor each one minimally — right job title, right company name in the cover letter, nothing more elaborate needed yet.\n\nDone when: 5 are sent." },
       { id: "p5-3", label: "Prep answers for common SOC interview questions", detail: "Have a real answer ready for: 'walk me through how you'd triage this alert,' 'what's the CIA triad,' and 'tell me about a lab you did.'\n\nDone when: you could answer these out loud without freezing." },
       { id: "p5-4", label: "Send 5 more applications", detail: "10 total sent by now.\n\nDone when: 5 more are out the door." },
       { id: "p5-5", label: "Keep applying weekly and follow up", detail: "An ongoing habit, not a one-time task.\n\nDone when: it's a routine you've sustained for a few weeks straight." },
       { id: "p5-6", label: "Update CV/portfolio from interview feedback", detail: "Every interview teaches you something about a gap — fix it in the CV/portfolio before the next one, don't wait until you have 'enough' feedback." }
+    ]
+  },
+  {
+    id: "p6", title: "Level Up: Red Team / Higher Pay", weeks: "Year 1+, after you're employed",
+    note: "Blue Team/SOC is the fast door in — this is the pivot once you're employed, not a parallel track now. VN red team/pentest postings (even Viettel Cyber Security's own, Vietnam's top offensive team) expect 3+ years even at 'junior' — don't chase this pre-job. Senior pentester/security engineer pay meaningfully more than senior SOC analyst long-term. Cloud security (AWS/Azure) is also worth a look down this road — a third fast-growing high-pay branch, not detailed here.",
+    tasks: [
+      { id: "p6-1", label: "Start PortSwigger Web Security Academy", detail: "portswigger.net/web-security — 100% free, no prerequisite. The best free bridge from blue-team log-reading into actually understanding the attacks you've been triaging.\n\nDone when: you've cleared the Apprentice-level labs." },
+      { id: "p6-2", label: "Start Hack The Box", detail: "hackthebox.com — free tier to start, VIP ~$10-20/mo once you want retired-machine writeups. Industry-standard red team practice ground.\n\nDone when: you've rooted your first free-tier machine." },
+      { id: "p6-3", label: "Build a home attack lab", detail: "VirtualBox or VMware, both free — practice against your own VMs.\n\nSame portfolio value as the blue-team write-ups from Phase 4: document what you did, publish it." },
+      { id: "p6-4", label: "OSCP (Offensive Security Certified Professional)", detail: "~$1,649 USD for the PEN-200 course + exam bundle (~43M VND) — this is what actually opens VN red team/pentest doors, Viettel's own postings assume this tier.\n\nDon't touch this pre-job. Save toward it once you have a salary — this is an employed-not-before purchase, same logic as the Security+ voucher but bigger." },
+      { id: "p6-5", label: "Apply to Viettel Cyber Security RedTeam / Penetration Tester roles", detail: "tuyendung.viettelsecurity.com — Vietnam's top offensive-security team, Pwn2Own champions 2023 and 2024. Real open req pages tracked directly on their own site, not just aggregators.\n\nDone when: you've applied with the OSCP (or in-progress) plus your HTB/PortSwigger track record to point to." }
     ]
   }
 ];
@@ -232,11 +248,18 @@ const RESOURCES = [
     { name: "LetsDefend", url: "https://letsdefend.io", cost: "Free tier", note: "15 alert investigations/month free" },
     { name: "Splunk free courses", url: "https://www.splunk.com/en_us/training/free-courses/overview.html", cost: "Free", note: "Start with Intro to Splunk, then Fundamentals 1" },
     { name: "MITRE ATT&CK", url: "https://attack.mitre.org", cost: "Free", note: "Reference site, not a course" },
-    { name: "Blue Team Labs Online", url: "https://blueteamlabs.online", cost: "Free tier", note: "15 labs + 10 hrs/month free" }
+    { name: "Blue Team Labs Online", url: "https://blueteamlabs.online", cost: "Free tier", note: "15 labs + 10 hrs/month free" },
+    { name: "OWASP Top 10", url: "https://owasp.org/www-project-top-ten/", cost: "Free", note: "Named directly in real VN SOC job postings" },
+    { name: "ELK stack (Elastic)", url: "https://www.elastic.co/training", cost: "Free", note: "Free/open-source SIEM, named beside Splunk in VN JDs" }
   ]},
   { phase: "Portfolio", items: [
     { name: "GitHub Pages", url: "https://pages.github.com", cost: "Free", note: "Host your write-ups" },
     { name: "LinkedIn", url: "https://linkedin.com", cost: "Free", note: "Cross-post write-ups + certs" }
+  ]},
+  { phase: "Red Team / Higher Pay", items: [
+    { name: "PortSwigger Web Security Academy", url: "https://portswigger.net/web-security", cost: "Free", note: "Best free bridge into web app attack technique" },
+    { name: "Hack The Box", url: "https://www.hackthebox.com", cost: "Free tier", note: "VIP ~$10–20/mo for retired-machine writeups" },
+    { name: "OSCP (OffSec PEN-200)", url: "https://www.offsec.com/courses/pen-200/", cost: "~$1,649", note: "Employed-not-before purchase — opens VN red team doors" }
   ]}
 ];
 
