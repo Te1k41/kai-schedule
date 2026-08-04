@@ -36,6 +36,8 @@
 
   .layout { display: grid; grid-template-columns: 1fr minmax(220px, clamp(300px, 22vw, 440px)); gap: clamp(56px, 4.5vw, 110px); align-items: start; }
   .col-side { position: sticky; top: 24px; background: var(--paper-deep); border: 1px solid var(--border); border-radius: 2px; padding: 22px 24px; overflow: visible; }
+  .notes-box { width: 100%; min-height: 120px; resize: vertical; font-family: var(--font); font-size: var(--fs-xs); color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 2px; padding: 10px 12px; line-height: 1.5; }
+  .notes-box:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
   .col-main { min-width: 0; }
 
   .progress { display: flex; align-items: baseline; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
@@ -236,6 +238,7 @@ const PHASES = [
 const RESOURCES = [
   { phase: "Foundations", items: [
     { name: "TryHackMe", url: "https://tryhackme.com", cost: "Free (mostly)", note: "Pre Security path — a few rooms need Premium later" },
+    { name: "TryHackMe's free content guide", url: "https://tryhackme.com/resources/blog/free_path", cost: "Free", note: "Official guide to what's free on the platform before Premium" },
     { name: "OverTheWire: Bandit", url: "https://overthewire.org/wargames/bandit/", cost: "Free", note: "Linux/CLI wargame, 34 levels" },
     { name: "picoCTF", url: "https://picoctf.org", cost: "Free", note: "Beginner CTF archive, always open" }
   ]},
@@ -264,10 +267,13 @@ const RESOURCES = [
 ];
 
 const STORAGE_KEY = "soc-roadmap-progress";
+const NOTES_KEY = "roadmap-notes";
 let progress = {};
+let notes = "";
 let openPhases = new Set();
 let loaded = false;
 let resetArmed = false;
+let notesSaveTimer = null;
 
 function flatTasks() {
   return PHASES.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
@@ -278,8 +284,9 @@ function nextTask() { return flatTasks().find(t => !progress[t.id]) || null; }
 
 async function loadProgress() {
   try {
-    const value = await loadData(STORAGE_KEY);
-    if (value) progress = value;
+    const [progressValue, notesValue] = await Promise.all([loadData(STORAGE_KEY), loadData(NOTES_KEY)]);
+    if (progressValue) progress = progressValue;
+    if (typeof notesValue === "string") notes = notesValue;
   } catch (e) {
     progress = {};
   }
@@ -292,6 +299,15 @@ async function loadProgress() {
 async function saveProgress() {
   const ok = await saveData(STORAGE_KEY, progress);
   if (!ok) notifySaveFailed();
+}
+
+function onNotesInput(value) {
+  notes = value;
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(async () => {
+    const ok = await saveData(NOTES_KEY, notes);
+    if (!ok) notifySaveFailed();
+  }, 600);
 }
 
 function toggleTask(id) {
@@ -440,6 +456,8 @@ function render() {
           </span>
         </div>
         ${upNextHtml}
+        <p class="panel-label" style="margin-top:24px;">Notes</p>
+        <textarea id="roadmap-notes" class="notes-box" placeholder="Scratch space — questions, links, whatever">${escapeHtml(notes)}</textarea>
       </div>
     </div>
   `;
@@ -463,6 +481,8 @@ function render() {
   if (resetConfirmBtn) resetConfirmBtn.addEventListener("click", confirmReset);
   const resetCancelBtn = app.querySelector('[data-action="reset-cancel"]');
   if (resetCancelBtn) resetCancelBtn.addEventListener("click", cancelReset);
+  const notesBox = app.querySelector("#roadmap-notes");
+  if (notesBox) notesBox.addEventListener("input", () => onNotesInput(notesBox.value));
 }
 
 initAuthUI({

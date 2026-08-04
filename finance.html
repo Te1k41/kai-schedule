@@ -89,6 +89,29 @@
 
   .footer { margin-top: 20px; font-size: clamp(12.5px, 0.7vw, 15px); color: var(--ink-soft); }
 
+  .cal-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  .cal-nav { display: flex; align-items: center; gap: 10px; }
+  .cal-month-label { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink-soft); min-width: 12ch; text-align: center; }
+  .cal-summary { display: flex; gap: 14px; font-family: var(--font-mono); font-size: var(--fs-xs); margin-bottom: 14px; flex-wrap: wrap; }
+  .cal-summary-income { color: var(--cat-life); }
+  .cal-summary-expense { color: var(--danger); }
+  .cal-summary-net.good { color: var(--cat-life); font-weight: 700; }
+  .cal-summary-net.bad { color: var(--danger); font-weight: 700; }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: var(--fs-2xs); color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; text-align: center; margin-bottom: 4px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  .cal-cell { background: var(--paper); min-height: 68px; padding: 5px 6px; display: flex; flex-direction: column; gap: 2px; }
+  .cal-cell.cal-empty { background: transparent; }
+  .cal-cell.cal-today { background: var(--paper-deep); box-shadow: inset 0 0 0 1.5px var(--vermillion); }
+  .cal-day { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--ink-soft); }
+  .cal-today .cal-day { color: var(--vermillion); font-weight: 700; }
+  .cal-income { font-family: var(--font-mono); font-size: 11px; color: var(--cat-life); }
+  .cal-expense { font-family: var(--font-mono); font-size: 11px; color: var(--danger); }
+  .cal-bill { font-size: 10.5px; color: var(--gold); background: var(--paper-deep); border-radius: 2px; padding: 1px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 560px) {
+    .cal-cell { min-height: 52px; padding: 3px 4px; }
+    .cal-bill { display: none; }
+  }
+
   @media (max-width: 860px) {
     .card-hero .log-field.amount input {
       font-family: var(--font-display); font-size: clamp(28px, 9vw, 40px); font-weight: 600;
@@ -131,6 +154,8 @@ let loaded = false;
 let rate = { usdToVnd: null, updatedAt: null };
 let markupPct = Number(localStorage.getItem("finance-usd-markup") ?? 11.7);
 let handledHash = false;
+let calYear = new Date().getFullYear();
+let calMonthIdx = new Date().getMonth();
 
 function effectiveRate() { return rate.usdToVnd ? rate.usdToVnd * (1 + markupPct / 100) : null; }
 
@@ -228,11 +253,91 @@ function addSubscription(app) {
   const category = app.querySelector("#sub-category").value;
   const account = app.querySelector("#sub-account").value;
   const amount = Number(app.querySelector("#sub-amount").value);
+  const dueDay = Number(app.querySelector("#sub-dueday").value) || null;
   if (!name || !amount) return;
-  data.subscriptions.push({ id: uid(), name, category, account, amount, lastLoggedMonth: null });
+  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, lastLoggedMonth: null });
   applyRecurringSubscriptions();
   saveFinance();
   render();
+}
+
+function shiftCalendar(delta) {
+  calMonthIdx += delta;
+  if (calMonthIdx < 0) { calMonthIdx = 11; calYear--; }
+  else if (calMonthIdx > 11) { calMonthIdx = 0; calYear++; }
+  render();
+}
+
+function daysInMonth(year, monthIdx) { return new Date(year, monthIdx + 1, 0).getDate(); }
+function firstWeekdayOfMonth(year, monthIdx) { return new Date(year, monthIdx, 1).getDay(); }
+
+function calendarHtml() {
+  const y = calYear, m = calMonthIdx;
+  const mk = `${y}-${String(m + 1).padStart(2, "0")}`;
+  const dim = daysInMonth(y, m);
+  const startWeekday = firstWeekdayOfMonth(y, m);
+  const todayStr = todayDateStr();
+
+  const incomeByDay = {}, expenseByDay = {};
+  let monthIncomeTotal = 0, monthExpenseTotal = 0;
+  data.income.forEach(e => {
+    if (!e.date || !e.date.startsWith(mk)) return;
+    const d = Number(e.date.slice(8, 10));
+    incomeByDay[d] = (incomeByDay[d] || 0) + Number(e.amount || 0);
+    monthIncomeTotal += Number(e.amount || 0);
+  });
+  data.expenses.forEach(e => {
+    if (!e.date || !e.date.startsWith(mk)) return;
+    const d = Number(e.date.slice(8, 10));
+    expenseByDay[d] = (expenseByDay[d] || 0) + Number(e.amount || 0);
+    monthExpenseTotal += Number(e.amount || 0);
+  });
+  const billsByDay = {};
+  data.subscriptions.forEach(s => {
+    if (!s.dueDay) return;
+    (billsByDay[s.dueDay] ||= []).push(s);
+  });
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push('<div class="cal-cell cal-empty"></div>');
+  for (let d = 1; d <= dim; d++) {
+    const dateStr = `${mk}-${String(d).padStart(2, "0")}`;
+    const inc = incomeByDay[d] || 0;
+    const exp = expenseByDay[d] || 0;
+    const bills = billsByDay[d] || [];
+    cells.push(`
+      <div class="cal-cell${dateStr === todayStr ? " cal-today" : ""}">
+        <span class="cal-day">${d}</span>
+        ${inc ? `<span class="cal-income">+${fmtVnd(inc)}</span>` : ""}
+        ${exp ? `<span class="cal-expense">&minus;${fmtVnd(exp)}</span>` : ""}
+        ${bills.map(b => `<span class="cal-bill" title="${escapeHtml(b.name)} due &middot; ${fmtVnd(b.amount)}">${escapeHtml(b.name)}</span>`).join("")}
+      </div>
+    `);
+  }
+
+  const monthLabel = new Date(y, m, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+  const net = monthIncomeTotal - monthExpenseTotal;
+
+  return `
+    <section class="card">
+      <div class="cal-header">
+        <h2>Calendar</h2>
+        <div class="cal-nav">
+          <button class="btn btn-ghost btn-small" id="cal-prev" type="button" aria-label="Previous month">&larr;</button>
+          <span class="cal-month-label">${monthLabel}</span>
+          <button class="btn btn-ghost btn-small" id="cal-next" type="button" aria-label="Next month">&rarr;</button>
+        </div>
+      </div>
+      <p class="subtitle" style="margin-bottom:12px;">Green = income logged that day. Red = spend logged that day. Gold pill = a subscription's due day, from Recurring subscriptions below.</p>
+      <div class="cal-summary">
+        <span class="cal-summary-income">+${fmtVnd(monthIncomeTotal)}</span>
+        <span class="cal-summary-expense">&minus;${fmtVnd(monthExpenseTotal)}</span>
+        <span class="cal-summary-net ${net >= 0 ? "good" : "bad"}">net ${net >= 0 ? "+" : ""}${fmtVnd(net)}</span>
+      </div>
+      <div class="cal-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+      <div class="cal-grid">${cells.join("")}</div>
+    </section>
+  `;
 }
 
 function setBudget(catKey, value) {
@@ -346,7 +451,7 @@ function render() {
     <div class="budget-row">
       <div class="budget-top">
         <span class="budget-name">${escapeHtml(sub.name)}</span>
-        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}</span>
+        <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${sub.lastLoggedMonth === currentMonthKey() ? "logged this month" : "logs next visit"}</span>
@@ -433,6 +538,8 @@ function render() {
           </div>
         </section>
 
+        ${calendarHtml()}
+
         <section class="card card-hero" id="log-expense">
           <h2>Log expense</h2>
           <div class="log-form">
@@ -505,6 +612,7 @@ function render() {
             </div>
             <div class="log-field"><label for="sub-account">Account</label><select id="sub-account">${accountOptionsHtml()}</select></div>
             <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="number" id="sub-amount" placeholder="0" /></div>
+            <div class="log-field"><label for="sub-dueday">Due day (1-31)</label><input type="number" id="sub-dueday" placeholder="optional" min="1" max="31" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
         </section>
@@ -523,6 +631,8 @@ function render() {
   app.querySelector("#add-goal-btn").addEventListener("click", () => addGoal(app));
   app.querySelector("#add-sub-btn").addEventListener("click", () => addSubscription(app));
   app.querySelector("#add-account-btn").addEventListener("click", () => addAccount(app));
+  app.querySelector("#cal-prev").addEventListener("click", () => shiftCalendar(-1));
+  app.querySelector("#cal-next").addEventListener("click", () => shiftCalendar(1));
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
   });
