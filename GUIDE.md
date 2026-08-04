@@ -104,6 +104,18 @@ map of what's stored where (full detail in `CLAUDE.md` if you need it):
 | Savings goals | finance.html "Savings goals" | Yes, read-only |
 | Recurring subscriptions | finance.html "Recurring subscriptions" | Yes, read-only |
 
+## Change Firestore security rules
+
+`firestore.rules` in this repo is the live version (not just documentation
+— it's actually deployed). To change it:
+1. Edit `firestore.rules`.
+2. `npx firebase-tools deploy --only firestore:rules` (one-time `npx
+   firebase-tools login` per machine first, if you haven't already — opens
+   a browser to sign in with the Google account that owns the Firebase
+   project).
+3. No GitHub Pages wait needed for this one — Firestore rules take effect
+   immediately on deploy, separate from the static site.
+
 ## Common problems
 
 - **"I changed something but the live site still looks old"** — the
@@ -114,10 +126,7 @@ map of what's stored where (full detail in `CLAUDE.md` if you need it):
   section (popup blocker issue, has a documented fix).
 - **"My partner can't see my savings/schedule"** — one of you needs to
   generate a connect code on `partner.html` and the other needs to enter
-  it (one-time, self-serve, no code/database editing needed). If neither
-  of you can even get that far, the Firestore rules update for this
-  feature might not be published yet — see `CLAUDE.md`, "Sharing with a
-  second person."
+  it (one-time, self-serve, no code/database editing needed).
 
 ## If you get stuck
 

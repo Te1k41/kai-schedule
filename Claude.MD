@@ -79,14 +79,14 @@ two new top-level Firestore collections (outside `users/`):
   know the partner's UID). Either side can call `disconnectPairing(pairId)` to
   unlink — a **Disconnect** button in `partner.html`.
 
-**Done:** the data split, `partner.html`'s connect/disconnect UI, and the four
-`firebase-init.js` exports above (`createInvite`, `redeemInvite`, `getMyPairing`,
-`disconnectPairing`).
-
-**Pending — one manual step, not code:** paste this into Firebase Console →
-Firestore Database → Rules → Publish (there's no `firestore.rules` file in this
-repo, rules only live in the Console; this replaces the rules shown further
-down, which are what's actually live until this is published):
+**Done, fully live:** the data split, `partner.html`'s connect/disconnect UI,
+the four `firebase-init.js` exports above (`createInvite`, `redeemInvite`,
+`getMyPairing`, `disconnectPairing`), and the Firestore rules below — deployed
+via `firebase.json`/`firestore.rules`/`.firebaserc` in this repo (Firebase CLI
+via `npx firebase-tools`, `npx firebase-tools login` once per machine, then
+`npx firebase-tools deploy --only firestore:rules` to publish any future rule
+changes — no more Console copy-paste). The rules block below is the live
+version, superseding the plain owner-only rule shown earlier in this doc:
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -129,19 +129,10 @@ flow, no hand-editing per pairing, no UID lookups needed ever again.
   security comes from Firestore rules, not from hiding the key).
 - **Enabled:** Google sign-in provider; Cloud Firestore (production mode).
 - **Authorized domain added:** `te1k41.github.io`
-- **Firestore rules** (currently live — locks all data to its owner; see
-  "Sharing with a second person" above for the pending update that adds
-  mutual read-only access to a few keys):
-  ```
-  rules_version = '2';
-  service cloud.firestore {
-    match /databases/{database}/documents {
-      match /users/{userId}/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-  }
-  ```
+- **Firestore rules**: managed as code now — `firestore.rules` in this repo is
+  the live version (see "Sharing with a second person" below for what it does
+  and how to redeploy it after an edit: `npx firebase-tools deploy --only
+  firestore:rules`, after a one-time `npx firebase-tools login` per machine).
 
 ## Run / edit / deploy
 - **Local preview:** `python3 -m http.server 8000` in the repo, open
@@ -179,6 +170,3 @@ Wake 6:30 → 06:30 workout, 07:10 shower, 07:35 breakfast, 08:00–12:00 work,
 - Add a custom favicon (currently 404s — harmless).
 - Optional: push notifications / reminders (would need a service worker or an
   external service; out of scope for pure static hosting).
-- Finish the sharing rollout: publish the pairing-enabled Firestore rules
-  (one paste into the Console, see "Sharing with a second person" above) —
-  the app-side code is already done, this is the only remaining step.
