@@ -182,16 +182,25 @@ function healthRealLink() { return { title: "Health & Fitness", sub: "Meal plan,
 
 async function loadHome() {
   const existing = await loadData(HOME_KEY).catch(() => null);
+  const [roadmapProgress, roadmapNotes, healthLog] = await Promise.all([
+    loadData("soc-roadmap-progress").catch(() => null),
+    loadData("roadmap-notes").catch(() => null),
+    loadData("health-tracker-log").catch(() => null)
+  ]);
+  const roadmapEngaged = (roadmapProgress && Object.keys(roadmapProgress).length > 0) || (typeof roadmapNotes === "string" && roadmapNotes.trim().length > 0);
+  // health-tracker-log alone under-detects real usage (an account can be a
+  // long-time user of the site without ever touching that one form) — any
+  // site-wide engagement signal counts here too.
+  const healthEngaged = !!(healthLog && Object.keys(healthLog).length > 0) || roadmapEngaged;
+
   if (existing && existing.eyebrow) {
     home = existing;
+    // Self-heal: a saved link that's still exactly the placeholder text on
+    // an account with real engagement means it was mis-seeded before this
+    // fix — refresh just that link, not the user's own custom edits.
+    if (roadmapEngaged && home.links.roadmap.title === PLACEHOLDER_HOME.links.roadmap.title) home.links.roadmap = roadmapRealLink();
+    if (healthEngaged && home.links.health.sub === PLACEHOLDER_HOME.links.health.sub) home.links.health = healthRealLink();
   } else {
-    const [roadmapProgress, roadmapNotes, healthLog] = await Promise.all([
-      loadData("soc-roadmap-progress").catch(() => null),
-      loadData("roadmap-notes").catch(() => null),
-      loadData("health-tracker-log").catch(() => null)
-    ]);
-    const roadmapEngaged = (roadmapProgress && Object.keys(roadmapProgress).length > 0) || (typeof roadmapNotes === "string" && roadmapNotes.trim().length > 0);
-    const healthEngaged = !!(healthLog && Object.keys(healthLog).length > 0);
     home = JSON.parse(JSON.stringify(PLACEHOLDER_HOME));
     if (roadmapEngaged) home.links.roadmap = roadmapRealLink();
     if (healthEngaged) home.links.health = healthRealLink();

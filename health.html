@@ -303,19 +303,45 @@ function latestWeight() {
   return 81;
 }
 
+// Cross-page signal: "has this account used this site at all before",
+// not just "has it used this one specific health form" — a real,
+// long-time user can easily have zero health-tracker-log entries while
+// having plenty of roadmap progress, which used to cause this page to
+// wrongly treat them as brand-new and seed the placeholder plan over
+// their real one.
+async function hasAppEngagement() {
+  const [roadmapProgress, roadmapNotes] = await Promise.all([
+    loadData("soc-roadmap-progress").catch(() => null),
+    loadData("roadmap-notes").catch(() => null)
+  ]);
+  return (roadmapProgress && Object.keys(roadmapProgress).length > 0) || (typeof roadmapNotes === "string" && roadmapNotes.trim().length > 0);
+}
+
+function looksLikeUntouchedPlaceholder(p) {
+  return !!(p.meals && p.meals.Mon && p.meals.Mon.breakfast && p.meals.Mon.breakfast.dish === "Example meal");
+}
+
 async function loadLog() {
   const [logValue, planValue] = await Promise.all([
     loadData(STORAGE_KEY).catch(() => null),
     loadData(PLAN_KEY).catch(() => null)
   ]);
   log = logValue || {};
+  const hasEngagement = Object.keys(log).length > 0 || await hasAppEngagement();
 
   if (planValue && planValue.stats) {
-    plan = planValue;
-    if (!plan.meta) plan.meta = { ...PLACEHOLDER_META };
-    if (!plan.rules) plan.rules = [...PLACEHOLDER_RULES];
+    // Self-heal: an already-saved plan that's still the untouched example
+    // placeholder, on an account with real engagement elsewhere, means it
+    // was mis-seeded before this fix — replace it with the real content.
+    if (looksLikeUntouchedPlaceholder(planValue) && hasEngagement) {
+      plan = JSON.parse(JSON.stringify(DEFAULT_HEALTH_PLAN));
+      await savePlan();
+    } else {
+      plan = planValue;
+      if (!plan.meta) plan.meta = { ...PLACEHOLDER_META };
+      if (!plan.rules) plan.rules = [...PLACEHOLDER_RULES];
+    }
   } else {
-    const hasEngagement = Object.keys(log).length > 0;
     plan = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_HEALTH_PLAN : PLACEHOLDER_HEALTH_PLAN));
     await savePlan();
   }
