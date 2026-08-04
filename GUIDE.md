@@ -102,11 +102,15 @@ the whole site, one place. Fonts are the `--font` (body) and
 `--font-display` (headings) variables right below the colors.
 
 **Or skip the code entirely** — on index.html, tap "Edit this page" once
-signed in, there's a "Theme colors" section (4 color pickers: background,
-text, accent, secondary accent). Saves per account, applies on every page
-automatically next time each loads (no redeploy needed). The softer
-shades (card backgrounds, muted text, borders) are derived from those 4
-automatically, same relationships the original palette used. "Reset to
+signed in, there's a "Theme colors" section: 5 one-click presets
+(Vermillion/Midnight/Sage/Ocean/Plum — Midnight is a real dark mode) plus
+4 color pickers (background, text, accent, secondary accent) to fine-tune
+from there. Saves per account, applies on every page automatically next
+time each loads (no redeploy needed) — including the browser tab favicon,
+which recolors live via a Canvas remap of `assets/icon-mask.png`. The
+softer shades (card backgrounds, muted text, borders, button text
+contrast) are derived from those 4 automatically, same relationships the
+original palette used. "Reset to
 default colors" undoes it.
 
 ## Where your data actually lives

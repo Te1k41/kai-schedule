@@ -53,20 +53,92 @@ function shade(hex, percent) {
   return rgbToHex(r + amt, g + amt, b + amt);
 }
 
+// WCAG relative luminance — used to auto-pick readable button text
+// against whatever accent color a theme sets, independent of light/dark.
+function relativeLuminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const [R, G, B] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+function contrastTextFor(bgHex) {
+  return relativeLuminance(bgHex) > 0.4 ? "#211E1A" : "#F2ECDD";
+}
+
 // Applies a theme (the 4 user-facing colors plus derived shades for the
 // softer tokens, same relationships the original hand-picked palette used)
 // as CSS custom properties on the root element, overriding shared.css's
 // defaults for this page load.
 export function applyThemeValues(theme) {
   const root = document.documentElement.style;
-  const { r, g, b } = hexToRgb(theme.ink);
+  const inkRgb = hexToRgb(theme.ink);
+  const vermRgb = hexToRgb(theme.vermillion);
   root.setProperty("--paper", theme.paper);
   root.setProperty("--paper-deep", shade(theme.paper, -6));
   root.setProperty("--ink", theme.ink);
   root.setProperty("--ink-soft", shade(theme.ink, 55));
+  root.setProperty("--ink-rgb", `${inkRgb.r},${inkRgb.g},${inkRgb.b}`);
   root.setProperty("--vermillion", theme.vermillion);
+  root.setProperty("--vermillion-rgb", `${vermRgb.r},${vermRgb.g},${vermRgb.b}`);
   root.setProperty("--gold", theme.gold);
-  root.setProperty("--border", `rgba(${r},${g},${b},0.14)`);
+  root.setProperty("--border", `rgba(${inkRgb.r},${inkRgb.g},${inkRgb.b},0.14)`);
+  root.setProperty("--btn-text", contrastTextFor(theme.vermillion));
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute("content", theme.vermillion);
+
+  applyIconTheme(theme);
+}
+
+// ---- Live icon recoloring ----
+// assets/icon-mask.png is a plain grayscale master of the koi artwork
+// (not the already-colored icon-192/512.png) so recoloring stays accurate
+// for any theme. Recolored via Canvas pixel remap (same luminance-based
+// technique used to hand-recolor the icon originally) and swapped onto
+// the favicon/apple-touch-icon <link> hrefs. Note: this updates the
+// browser tab/bookmark icon live — an already-installed home-screen/PWA
+// icon was captured by the OS at install time and can't be reached this
+// way, same platform limit as changing the icon file itself.
+
+let iconMaskImg = null;
+let latestIconTheme = null;
+
+export function applyIconTheme(theme) {
+  latestIconTheme = theme;
+  if (!iconMaskImg) {
+    iconMaskImg = new Image();
+    iconMaskImg.onload = () => paintIcon(latestIconTheme);
+    iconMaskImg.src = "./assets/icon-mask.png";
+    return;
+  }
+  if (iconMaskImg.complete) paintIcon(theme);
+}
+
+function paintIcon(theme) {
+  const size = iconMaskImg.naturalWidth || 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(iconMaskImg, 0, 0, size, size);
+  const imgData = ctx.getImageData(0, 0, size, size);
+  const dark = hexToRgb(theme.vermillion);
+  const light = hexToRgb(theme.paper);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const lum = data[i] / 255; // mask is grayscale, r===g===b
+    data[i] = dark.r + (light.r - dark.r) * lum;
+    data[i + 1] = dark.g + (light.g - dark.g) * lum;
+    data[i + 2] = dark.b + (light.b - dark.b) * lum;
+  }
+  ctx.putImageData(imgData, 0, 0);
+  const dataUrl = canvas.toDataURL("image/png");
+  const favicon = document.querySelector('link[rel="icon"]');
+  if (favicon) favicon.href = dataUrl;
+  const touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+  if (touchIcon) touchIcon.href = dataUrl;
 }
 
 // Loads the signed-in user's saved theme (if any) and applies it. Safe to

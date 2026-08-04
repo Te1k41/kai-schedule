@@ -61,7 +61,7 @@
   details.phase summary { list-style: none; cursor: pointer; }
   details.phase summary::-webkit-details-marker { display: none; }
   .phase-header { display: flex; align-items: center; gap: 16px; padding: clamp(18px, 1.1vw, 24px) 10px; margin: 0 -10px; border-radius: 2px; transition: background-color 0.15s ease; }
-  details.phase:hover .phase-header { background: rgba(33,30,26,0.035); }
+  details.phase:hover .phase-header { background: rgba(var(--ink-rgb),0.035); }
   .phase-header:focus-visible { outline: 2px solid var(--vermillion); outline-offset: -2px; }
   .phase-num { font-family: var(--font-display); font-size: clamp(40px, 3vw, 64px); font-weight: 600; color: var(--phase-color, var(--ink-soft)); opacity: 0.5; line-height: 1; flex-shrink: 0; width: clamp(48px, 3.6vw, 76px); transition: opacity 0.15s ease; }
   .phase-num.current { opacity: 1; }
@@ -78,9 +78,9 @@
   .phase-note { font-size: clamp(13px, 0.75vw, 16px); color: var(--ink-soft); padding: 0 2px 16px calc(clamp(48px, 3.6vw, 76px) + 16px); margin: 0; }
 
   .task-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 10px 10px calc(clamp(48px, 3.6vw, 76px) + 16px); margin: 0 -10px; border-top: 1px solid var(--border); border-radius: 2px; transition: background-color 0.15s ease; }
-  .task-row:hover { background: rgba(33,30,26,0.035); }
+  .task-row:hover { background: rgba(var(--ink-rgb),0.035); }
   .task-row:has(input:checked) { animation: check-flash 0.5s ease; }
-  @keyframes check-flash { from { background: rgba(188,65,48,0.1); } to { background: transparent; } }
+  @keyframes check-flash { from { background: rgba(var(--vermillion-rgb),0.1); } to { background: transparent; } }
 
   .task-row input[type="checkbox"] {
     appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 19px; height: 19px; margin-top: 2px;

@@ -51,9 +51,9 @@
   .preview-tag { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; padding-top: 4px; }
 
   .block { display: flex; align-items: flex-start; gap: 12px; padding: clamp(12px, 0.8vw, 16px) 10px; margin: 0 -10px; border-bottom: 1px solid var(--border); border-left: 3px solid var(--cat-color, transparent); border-radius: 2px; transition: background-color 0.15s ease; }
-  .block:hover { background: rgba(33,30,26,0.035); }
+  .block:hover { background: rgba(var(--ink-rgb),0.035); }
   .block:has(input:checked) { animation: check-flash 0.5s ease; }
-  @keyframes check-flash { from { background: rgba(188,65,48,0.1); } to { background: transparent; } }
+  @keyframes check-flash { from { background: rgba(var(--vermillion-rgb),0.1); } to { background: transparent; } }
   .block.current { border-left-color: var(--vermillion); padding-left: 9px; }
 
   .block input[type="checkbox"] {

@@ -1,9 +1,9 @@
-const CACHE = "kai-ops-v23";
+const CACHE = "kai-ops-v24";
 const SHELL = [
   "./index.html", "./schedule.html", "./roadmap.html", "./health.html", "./finance.html", "./offline.html",
   "./now.html", "./money.html", "./partner.html",
   "./manifest.json", "./shared.css", "./app-shell.js", "./meals-data.js", "./schedule-data.js", "./finance-core.js", "./firebase-init.js",
-  "./assets/icon-192.png", "./assets/icon-512.png", "./assets/koi.jpg"
+  "./assets/icon-192.png", "./assets/icon-512.png", "./assets/icon-mask.png", "./assets/koi.jpg"
 ];
 
 self.addEventListener("install", (e) => {

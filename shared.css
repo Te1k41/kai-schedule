@@ -1,5 +1,6 @@
 :root {
   --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
+  --ink-rgb: 33,30,26; --vermillion-rgb: 158,58,38; --btn-text: #F2ECDD;
   --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14); --danger: #8A2F20;
   --cat-work: #2E4A66; --cat-study: #806124; --cat-fitness: #9E3A26; --cat-life: #52603E;
   --phase1: #52603E; --phase2: #806124; --phase3: #2E4A66; --phase4: #664B57; --phase5: #9E3A26;
@@ -22,7 +23,7 @@ html { scrollbar-color: var(--vermillion) var(--paper-deep); scrollbar-width: th
 ::-webkit-scrollbar-corner { background: var(--paper-deep); }
 body {
   padding: 24px 20px 60px; position: relative; animation: page-in 0.35s ease-out;
-  background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(33,30,26,0.035), transparent 60%);
+  background-image: radial-gradient(ellipse 60% 50% at 10% 5%, rgba(var(--ink-rgb),0.035), transparent 60%);
 }
 @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -56,7 +57,7 @@ nav.top a.current { color: var(--vermillion); }
 
 .btn {
   font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
-  border: none; background: var(--vermillion); color: var(--paper);
+  border: none; background: var(--vermillion); color: var(--btn-text);
   padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
 }

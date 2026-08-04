@@ -18,7 +18,8 @@
 <style>
   :root {
     --paper: #F2ECDD; --paper-deep: #E7DCC3; --ink: #211E1A; --ink-soft: #6E6455;
-    --vermillion: #9E3A26; --gold: #806124; --border: rgba(33,30,26,0.14);
+    --ink-rgb: 33,30,26; --vermillion-rgb: 158,58,38; --btn-text: #F2ECDD;
+    --vermillion: #9E3A26; --gold: #806124; --border: rgba(var(--ink-rgb),0.14);
     --font: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-display: 'Shippori Mincho', Georgia, serif;
   }
@@ -33,7 +34,7 @@
   body {
     min-height: 100vh; display: flex; align-items: center; padding: 40px 24px; position: relative; overflow-x: hidden;
     animation: page-in 0.4s ease-out;
-    background-image: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(33,30,26,0.035), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 85%, rgba(33,30,26,0.03), transparent 60%);
+    background-image: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(var(--ink-rgb),0.035), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 85%, rgba(var(--ink-rgb),0.03), transparent 60%);
   }
   @keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -74,6 +75,40 @@
   .link-row-quick .link-title { font-size: clamp(17px, 1.1vw, 21px); }
 
   .footer { margin-top: 28px; font-size: clamp(12.5px, 0.75vw, 15px); color: var(--ink-soft); }
+
+  /* index.html doesn't import shared.css, so these need their own copy */
+  .btn {
+    font-family: var(--font); font-weight: 700; font-size: 14px; border-radius: 2px;
+    border: none; background: var(--vermillion); color: var(--btn-text);
+    padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.1s ease, transform 0.1s ease;
+  }
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
+  .btn-ghost { background: transparent; color: var(--vermillion); border: 1px solid var(--vermillion); }
+  .btn-small { font-size: 12.5px; padding: 6px 12px; min-height: 32px; }
+
+  .link-btn {
+    background: none; border: none; color: var(--ink-soft); text-decoration: underline;
+    cursor: pointer; font-family: var(--font); font-size: 13px; padding: 2px 0;
+    transition: color 0.15s ease;
+  }
+  .link-btn:hover { color: var(--ink); }
+  .link-btn:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
+
+  .theme-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .theme-swatch {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: none; border: none; cursor: pointer; font-family: var(--font); padding: 4px;
+    border-radius: 2px; transition: outline-color 0.15s ease;
+  }
+  .theme-swatch-dot {
+    width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--border);
+  }
+  .theme-swatch-label { font-size: 11px; color: var(--ink-soft); }
+  .theme-swatch:hover .theme-swatch-label { color: var(--ink); }
+  .theme-swatch:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 2px; }
 
   @media (max-width: 780px) {
     body { display: block; min-height: auto; padding: 24px 20px 60px; }
@@ -180,6 +215,14 @@ const PLACEHOLDER_HOME = {
 
 const LINK_KEYS = ["now", "money", "schedule", "roadmap", "health", "finance", "partner"];
 
+const PRESET_THEMES = [
+  { name: "Vermillion", paper: "#F2ECDD", ink: "#211E1A", vermillion: "#9E3A26", gold: "#806124" },
+  { name: "Midnight", paper: "#1C1B22", ink: "#E8E4DC", vermillion: "#D9614F", gold: "#C9A24B" },
+  { name: "Sage", paper: "#EEF0E4", ink: "#22271D", vermillion: "#52603E", gold: "#8C7A3E" },
+  { name: "Ocean", paper: "#E7EFF1", ink: "#1A2529", vermillion: "#2E6E8E", gold: "#4C8C7A" },
+  { name: "Plum", paper: "#F3EAEF", ink: "#241C22", vermillion: "#8B3A6B", gold: "#A6763D" }
+];
+
 let home = null;
 let theme = null;
 let editMode = false;
@@ -235,8 +278,21 @@ function applyHome() {
 
 function showAccountArea() {
   const area = document.getElementById("account-area");
-  area.innerHTML = `<button id="edit-page-btn" type="button" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:inherit; padding:0;">Edit this page</button>`;
+  area.innerHTML = `<button class="link-btn" id="edit-page-btn" type="button">Edit this page</button>`;
   document.getElementById("edit-page-btn").addEventListener("click", toggleEditMode);
+}
+
+function selectPreset(preset) {
+  theme = { paper: preset.paper, ink: preset.ink, vermillion: preset.vermillion, gold: preset.gold };
+  saveData(THEME_KEY, theme);
+  applyThemeValues(theme);
+  const paperEl = document.getElementById("edit-theme-paper");
+  if (paperEl) {
+    paperEl.value = theme.paper;
+    document.getElementById("edit-theme-ink").value = theme.ink;
+    document.getElementById("edit-theme-vermillion").value = theme.vermillion;
+    document.getElementById("edit-theme-gold").value = theme.gold;
+  }
 }
 
 function toggleEditMode() {
@@ -278,15 +334,23 @@ function renderEditForm() {
       ${fieldRow(`edit-link-${key}-sub`, "Description", home.links[key].sub)}
     `).join("")}
     <p class="eyebrow" style="margin-top:24px;">Theme colors</p>
-    <p class="subtitle" style="margin-bottom:14px;">Applies everywhere on the site, not just this page.</p>
+    <p class="subtitle" style="margin-bottom:14px;">Applies everywhere on the site, not just this page. Pick a preset, or fine-tune below.</p>
+    <div class="theme-swatches">
+      ${PRESET_THEMES.map((p, i) => `
+        <button class="theme-swatch" data-action="preset" data-idx="${i}" type="button" title="${escapeHtml(p.name)}">
+          <span class="theme-swatch-dot" style="background:${p.paper}; box-shadow: inset 0 0 0 8px ${p.vermillion};"></span>
+          <span class="theme-swatch-label">${escapeHtml(p.name)}</span>
+        </button>
+      `).join("")}
+    </div>
     ${colorFieldRow("edit-theme-paper", "Background", theme.paper)}
     ${colorFieldRow("edit-theme-ink", "Text", theme.ink)}
     ${colorFieldRow("edit-theme-vermillion", "Accent", theme.vermillion)}
     ${colorFieldRow("edit-theme-gold", "Secondary accent", theme.gold)}
-    <button type="button" id="reset-theme-btn" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:13px; padding:0; margin-bottom:10px;">Reset to default colors</button>
+    <button type="button" class="link-btn" id="reset-theme-btn" style="display:block; margin-bottom:10px;">Reset to default colors</button>
     <div style="display:flex; gap:14px; margin-top:10px;">
       <button class="btn" id="save-home-btn" type="button">Save</button>
-      <button type="button" id="cancel-home-btn" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font);">Cancel</button>
+      <button type="button" class="link-btn" id="cancel-home-btn">Cancel</button>
     </div>
   `;
   document.getElementById("save-home-btn").addEventListener("click", saveHomeForm);
@@ -296,6 +360,9 @@ function renderEditForm() {
     document.getElementById("edit-theme-ink").value = DEFAULT_THEME.ink;
     document.getElementById("edit-theme-vermillion").value = DEFAULT_THEME.vermillion;
     document.getElementById("edit-theme-gold").value = DEFAULT_THEME.gold;
+  });
+  document.querySelectorAll('[data-action="preset"]').forEach(el => {
+    el.addEventListener("click", () => selectPreset(PRESET_THEMES[Number(el.getAttribute("data-idx"))]));
   });
 }
 
@@ -325,7 +392,7 @@ function saveHomeForm() {
 
 function showSignInLink() {
   const area = document.getElementById("account-area");
-  area.innerHTML = `<button id="signin-link-btn" type="button" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:inherit; padding:0;">Sign in to customize</button>`;
+  area.innerHTML = `<button class="link-btn" id="signin-link-btn" type="button">Sign in to customize</button>`;
   document.getElementById("signin-link-btn").addEventListener("click", () => signIn().catch(() => {}));
 }
 
