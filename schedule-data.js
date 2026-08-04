@@ -67,6 +67,7 @@ export function genericWeekSeed() {
       { start: "22:30", end: "07:00", cat: "life", label: "Sleep" }
     ];
   }
+  week.meta = { title: "Your Weekday Timetable", subtitle: "Job, training, meals, and rest — every day of the week, mapped out." };
   return week;
 }
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<title>Zero to SOC Analyst — Roadmap</title>
+<title>Roadmap</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#9E3A26">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
@@ -142,6 +142,9 @@
   }
   .log-field input:focus-visible, .log-field textarea:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
   .log-save-row { display: flex; align-items: center; gap: 14px; }
+
+  .edit-fab { position: fixed; right: 20px; bottom: 20px; z-index: 50; }
+  .edit-fab .btn { box-shadow: 0 4px 16px rgba(33,30,26,0.25); }
 </style>
 </head>
 <body>
@@ -304,6 +307,9 @@ const PLACEHOLDER_RESOURCES = [
   ]}
 ];
 
+const DEFAULT_META = { title: "Zero to SOC Analyst", subtitle: "Your step-by-step path into a Tier 1 SOC role. One task at a time - check it off, and the next one lights up." };
+const PLACEHOLDER_META = { title: "Roadmap", subtitle: "Your step-by-step plan, phase by phase. Check off a task, and the next one lights up." };
+
 const STORAGE_KEY = "soc-roadmap-progress";
 const NOTES_KEY = "roadmap-notes";
 const PLAN_KEY = "roadmap-phases";
@@ -311,6 +317,7 @@ let progress = {};
 let notes = "";
 let phases = [];
 let resources = [];
+let meta = PLACEHOLDER_META;
 let openPhases = new Set();
 let loaded = false;
 let resetArmed = false;
@@ -318,6 +325,7 @@ let notesSaveTimer = null;
 let editMode = false;
 let editingPhaseId = null;
 let editingTaskId = null;
+let editingMeta = false;
 
 function flatTasks() {
   return phases.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
@@ -338,13 +346,16 @@ async function loadProgress() {
   if (planValue && Array.isArray(planValue.phases)) {
     phases = planValue.phases;
     resources = Array.isArray(planValue.resources) ? planValue.resources : [];
+    meta = planValue.meta && planValue.meta.title ? planValue.meta : PLACEHOLDER_META;
   } else {
     const hasEngagement = Object.keys(progress).length > 0 || notes.trim().length > 0;
     phases = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_PHASES : PLACEHOLDER_PHASES));
     resources = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_RESOURCES : PLACEHOLDER_RESOURCES));
+    meta = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_META : PLACEHOLDER_META));
     await savePlan();
   }
 
+  document.title = meta.title;
   loaded = true;
   const nt = nextTask();
   if (nt) openPhases.add(nt.phaseId);
@@ -357,7 +368,7 @@ async function saveProgress() {
 }
 
 async function savePlan() {
-  const ok = await saveData(PLAN_KEY, { phases, resources });
+  const ok = await saveData(PLAN_KEY, { phases, resources, meta });
   if (!ok) notifySaveFailed();
 }
 
@@ -365,6 +376,26 @@ function toggleEditMode() {
   editMode = !editMode;
   editingPhaseId = null;
   editingTaskId = null;
+  editingMeta = false;
+  render();
+}
+
+function startEditMeta() {
+  editingMeta = true;
+  render();
+}
+function cancelEditMeta() {
+  editingMeta = false;
+  render();
+}
+function saveEditMeta(app) {
+  const title = app.querySelector("#meta-edit-title").value.trim();
+  const subtitle = app.querySelector("#meta-edit-subtitle").value.trim();
+  if (!title) return;
+  meta = { title, subtitle };
+  document.title = title;
+  editingMeta = false;
+  savePlan();
   render();
 }
 
@@ -515,7 +546,7 @@ function render() {
   ` : `
     <p class="panel-label">Status</p>
     <div class="up-next">
-      <p class="celebrate">Every task is checked off. Sit the exam if you have not yet, and get those applications out — you are job-ready.</p>
+      <p class="celebrate">Every task is checked off — nice work.</p>
     </div>
   `;
 
@@ -635,11 +666,30 @@ function render() {
     </div>
   ` : "";
 
-  app.innerHTML = `
+  const metaHtml = editMode && editingMeta ? `
+    <div class="phase-edit-form" style="padding-left:2px; margin-bottom:20px;">
+      <div class="log-form">
+        <div class="log-field wide"><label for="meta-edit-title">Page title</label><input type="text" id="meta-edit-title" value="${escapeHtml(meta.title)}" /></div>
+        <div class="log-field wide"><label for="meta-edit-subtitle">Subtitle</label><input type="text" id="meta-edit-subtitle" value="${escapeHtml(meta.subtitle)}" /></div>
+      </div>
+      <div class="log-save-row">
+        <button class="btn btn-small" id="save-meta-btn" type="button">Save</button>
+        <button class="btn btn-ghost btn-small" id="cancel-meta-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  ` : `
     <p class="eyebrow">Roadmap</p>
-    <h1>Zero to SOC Analyst</h1>
-    <p class="subtitle">Your step-by-step path into a Tier 1 SOC role. One task at a time - check it off, and the next one lights up.</p>
-    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit roadmap"}</button></div>
+    <h1>${escapeHtml(meta.title)}</h1>
+    <p class="subtitle">${escapeHtml(meta.subtitle)}</p>
+  `;
+
+  app.innerHTML = `
+    ${metaHtml}
+    <div class="edit-toggle-row">
+      <button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit roadmap"}</button>
+      ${editMode && !editingMeta ? `<button class="btn btn-ghost btn-small" id="edit-meta-btn" type="button">Edit title/subtitle</button>` : ""}
+    </div>
+    ${editMode ? `<div class="edit-fab"><button class="btn btn-small" id="done-editing-fab" type="button">Done editing</button></div>` : ""}
 
     <details class="resource-box">
       <summary>
@@ -730,6 +780,14 @@ function render() {
 
   const editToggleBtn = app.querySelector("#edit-toggle-btn");
   if (editToggleBtn) editToggleBtn.addEventListener("click", toggleEditMode);
+  const editMetaBtn = app.querySelector("#edit-meta-btn");
+  if (editMetaBtn) editMetaBtn.addEventListener("click", startEditMeta);
+  const saveMetaBtn = app.querySelector("#save-meta-btn");
+  if (saveMetaBtn) saveMetaBtn.addEventListener("click", () => saveEditMeta(app));
+  const cancelMetaBtn = app.querySelector("#cancel-meta-btn");
+  if (cancelMetaBtn) cancelMetaBtn.addEventListener("click", cancelEditMeta);
+  const doneFab = app.querySelector("#done-editing-fab");
+  if (doneFab) doneFab.addEventListener("click", toggleEditMode);
   app.querySelectorAll('[data-action="edit-phase"]').forEach(el => {
     el.addEventListener("click", () => startEditPhase(el.getAttribute("data-id")));
   });

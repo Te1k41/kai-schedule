@@ -105,6 +105,9 @@
   .log-field input:focus-visible, .log-field select:focus-visible, .log-field textarea:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
   .log-save-row { display: flex; align-items: center; gap: 14px; }
 
+  .edit-fab { position: fixed; right: 20px; bottom: 20px; z-index: 50; }
+  .edit-fab .btn { box-shadow: 0 4px 16px rgba(33,30,26,0.25); }
+
   @media (max-width: 860px) {
     .layout { grid-template-columns: 1fr; gap: 20px; }
     .col-side { position: static; order: -1; }
@@ -145,6 +148,9 @@ let checked = {};
 let loaded = false;
 let editMode = false;
 let editingBlockId = null;
+let editingMeta = false;
+
+const DEFAULT_SCHEDULE_META = { title: "Your Weekday Timetable", subtitle: "Job, training, meals, and rest — every day of the week, mapped out." };
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 
@@ -156,6 +162,11 @@ async function loadAll() {
     loadData(STORAGE_KEY).catch(() => null)
   ]);
   weekBlocks = scheduleValue;
+  if (!weekBlocks.meta) {
+    weekBlocks.meta = { ...DEFAULT_SCHEDULE_META };
+    saveSchedule();
+  }
+  document.title = weekBlocks.meta.title;
   checked = (checkedValue && checkedValue.date === todayDateStr()) ? (checkedValue.checked || {}) : {};
   loaded = true;
   render();
@@ -184,6 +195,32 @@ function startEditBlock(id) {
 
 function cancelEdit() {
   editingBlockId = null;
+  render();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  editingBlockId = null;
+  editingMeta = false;
+  render();
+}
+
+function startEditMeta() {
+  editingMeta = true;
+  render();
+}
+function cancelEditMeta() {
+  editingMeta = false;
+  render();
+}
+function saveEditMeta(app) {
+  const title = app.querySelector("#meta-edit-title").value.trim();
+  const subtitle = app.querySelector("#meta-edit-subtitle").value.trim();
+  if (!title) return;
+  weekBlocks.meta = { title, subtitle };
+  document.title = title;
+  editingMeta = false;
+  saveSchedule();
   render();
 }
 
@@ -303,12 +340,31 @@ function render() {
     `;
   }
 
-  app.innerHTML = `
+  const metaHtml = editMode && editingMeta ? `
+    <div class="block-form" style="border-top:none; padding-top:0;">
+      <div class="log-form">
+        <div class="log-field wide"><label for="meta-edit-title">Page title</label><input type="text" id="meta-edit-title" value="${escapeHtml(weekBlocks.meta.title)}" /></div>
+        <div class="log-field wide"><label for="meta-edit-subtitle">Subtitle</label><input type="text" id="meta-edit-subtitle" value="${escapeHtml(weekBlocks.meta.subtitle)}" /></div>
+      </div>
+      <div class="log-save-row">
+        <button class="btn btn-small" id="save-meta-btn" type="button">Save</button>
+        <button class="btn btn-ghost btn-small" id="cancel-meta-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  ` : `
     <p class="eyebrow">Schedule</p>
-    <h1>Your Weekday Timetable</h1>
-    <p class="subtitle">Job, training, meals, and rest — every day of the week, mapped out.</p>
+    <h1>${escapeHtml(weekBlocks.meta.title)}</h1>
+    <p class="subtitle">${escapeHtml(weekBlocks.meta.subtitle)}</p>
+  `;
+
+  app.innerHTML = `
+    ${metaHtml}
     <div class="day-tabs">${tabsHtml}</div>
-    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit schedule"}</button></div>
+    <div class="edit-toggle-row">
+      <button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit schedule"}</button>
+      ${editMode && !editingMeta ? `<button class="btn btn-ghost btn-small" id="edit-meta-btn" type="button">Edit title/subtitle</button>` : ""}
+    </div>
+    ${editMode ? `<div class="edit-fab"><button class="btn btn-small" id="done-editing-fab" type="button">Done editing</button></div>` : ""}
     <div class="layout">
       <div class="col-main">${rightHtml}</div>
       <div class="col-side">${leftHtml}</div>
@@ -330,7 +386,7 @@ function render() {
       det.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   });
-  app.querySelector("#edit-toggle-btn").addEventListener("click", () => { editMode = !editMode; editingBlockId = null; render(); });
+  app.querySelector("#edit-toggle-btn").addEventListener("click", toggleEditMode);
   app.querySelectorAll('[data-action="edit-block"]').forEach(el => {
     el.addEventListener("click", () => startEditBlock(el.getAttribute("data-id")));
   });
@@ -341,6 +397,14 @@ function render() {
   if (saveBlockBtn) saveBlockBtn.addEventListener("click", () => saveBlockForm(app));
   const cancelEditBtn = app.querySelector("#cancel-edit-btn");
   if (cancelEditBtn) cancelEditBtn.addEventListener("click", cancelEdit);
+  const editMetaBtn = app.querySelector("#edit-meta-btn");
+  if (editMetaBtn) editMetaBtn.addEventListener("click", startEditMeta);
+  const saveMetaBtn = app.querySelector("#save-meta-btn");
+  if (saveMetaBtn) saveMetaBtn.addEventListener("click", () => saveEditMeta(app));
+  const cancelMetaBtn = app.querySelector("#cancel-meta-btn");
+  if (cancelMetaBtn) cancelMetaBtn.addEventListener("click", cancelEditMeta);
+  const doneFab = app.querySelector("#done-editing-fab");
+  if (doneFab) doneFab.addEventListener("click", toggleEditMode);
 }
 
 initAuthUI({

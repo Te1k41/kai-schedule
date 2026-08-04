@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<title>Health &amp; Fitness</title>
+<title>Health</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#9E3A26">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
@@ -128,6 +128,8 @@
   .edit-toggle-row { margin: -18px 0 20px; }
   .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px; }
   .row-del:hover { color: var(--danger); }
+  .edit-fab { position: fixed; right: 20px; bottom: 20px; z-index: 50; }
+  .edit-fab .btn { box-shadow: 0 4px 16px rgba(33,30,26,0.25); }
 </style>
 </head>
 <body>
@@ -159,7 +161,7 @@ const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAY_FULL = { Mon:"Monday", Tue:"Tuesday", Wed:"Wednesday", Thu:"Thursday", Fri:"Friday", Sat:"Saturday", Sun:"Sunday" };
 const CAT_COLOR_VARS = { work: "var(--cat-work)", study: "var(--cat-study)", fitness: "var(--cat-fitness)", life: "var(--cat-life)" };
 
-const RULES = [
+const DEFAULT_RULES = [
   "Food creates fat loss — no workout cancels out overeating.",
   "Protein every meal keeps muscle → defined, not skinny-soft.",
   "Cut sugary drinks. Water or black coffee only.",
@@ -167,12 +169,35 @@ const RULES = [
   "Never miss twice: one miss is nothing, two in a row starts a habit.",
   "Weigh weekly, judge the 3-week trend — not any single day."
 ];
+const PLACEHOLDER_RULES = [
+  "Consistency beats intensity — a habit you keep beats a plan you don't.",
+  "Protein every meal supports whatever your goal is.",
+  "Sleep 8h — recovery is where progress actually happens.",
+  "Water first, sugary drinks last.",
+  "Never miss twice: one missed day is nothing, two in a row starts a habit.",
+  "Weigh/measure weekly, judge the trend — not any single day."
+];
+
+const DEFAULT_META = {
+  title: "Phase 2 — Fat Loss", subtitle: "Goal: lose fat to a lean, defined body.",
+  workoutTitle: "Full-Body A — bodyweight", workoutSubtitle: "3×/week (Mon · Wed · Fri) · ~25 min · 2 sets each, rest 60-90s, slow and controlled.",
+  mealSubtitle: "Lean proteins, more veg, controlled rice, no sugary drinks. Costs are Ho Chi Minh City market prices, Jul 2026.",
+  pricesSubtitle: "How each meal's cost is built. Researched Jul 2026 (Bách Hóa Xanh / Kamereo / HCMC market)."
+};
+const PLACEHOLDER_META = {
+  title: "Health & Fitness", subtitle: "Track your body, meals, and training.",
+  workoutTitle: "Workout", workoutSubtitle: "Edit this to describe your own routine — frequency, duration, style.",
+  mealSubtitle: "Your weekly meal plan, editable per day and slot above.",
+  pricesSubtitle: "How each meal's cost is built — edit these to match your own prices."
+};
 
 const MEAL_SLOTS = [["breakfast","Breakfast","life"],["lunch","Lunch","life"],["dinner","Dinner","life"],["snack","Snack","life"]];
 
 // Real content, used only as the one-time seed for an account that's
 // already engaged with this page (see loadLog's grandfathering check).
 const DEFAULT_HEALTH_PLAN = {
+  meta: DEFAULT_META,
+  rules: DEFAULT_RULES,
   stats: { age: "23", heightM: 1.65, goalWeight: "~60 kg", fatToLose: "~21 kg", dailyCalories: "1,800–1,900", proteinPerDay: "~130 g", lossRate: "0.4–0.7 kg/wk", timeline: "~9–12 months", monthlyFoodCost: "2,172,857" },
   meals: REAL_MEALS,
   warmup: [
@@ -230,6 +255,8 @@ function placeholderMeals() {
   return m;
 }
 const PLACEHOLDER_HEALTH_PLAN = {
+  meta: PLACEHOLDER_META,
+  rules: PLACEHOLDER_RULES,
   stats: { age: "", heightM: 1.7, goalWeight: "", fatToLose: "", dailyCalories: "", proteinPerDay: "", lossRate: "", timeline: "", monthlyFoodCost: "" },
   meals: placeholderMeals(),
   warmup: [["Example warm-up move", "30 sec"]],
@@ -262,6 +289,7 @@ let loaded = false;
 let editMode = false;
 let editingMealKey = null;
 let editingExerciseIdx = null;
+let editingMeta = false;
 let progressionSaveTimer = null;
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
@@ -284,12 +312,15 @@ async function loadLog() {
 
   if (planValue && planValue.stats) {
     plan = planValue;
+    if (!plan.meta) plan.meta = { ...PLACEHOLDER_META };
+    if (!plan.rules) plan.rules = [...PLACEHOLDER_RULES];
   } else {
     const hasEngagement = Object.keys(log).length > 0;
     plan = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_HEALTH_PLAN : PLACEHOLDER_HEALTH_PLAN));
     await savePlan();
   }
 
+  document.title = plan.meta.title;
   loaded = true;
   render();
 }
@@ -308,6 +339,43 @@ function toggleEditMode() {
   editMode = !editMode;
   editingMealKey = null;
   editingExerciseIdx = null;
+  editingMeta = false;
+  render();
+}
+
+function startEditMeta() {
+  editingMeta = true;
+  render();
+}
+function cancelEditMeta() {
+  editingMeta = false;
+  render();
+}
+function saveEditMeta(app) {
+  const title = app.querySelector("#meta-edit-title").value.trim();
+  const subtitle = app.querySelector("#meta-edit-subtitle").value.trim();
+  const workoutTitle = app.querySelector("#meta-edit-workout-title").value.trim();
+  const workoutSubtitle = app.querySelector("#meta-edit-workout-subtitle").value.trim();
+  const mealSubtitle = app.querySelector("#meta-edit-meal-subtitle").value.trim();
+  const pricesSubtitle = app.querySelector("#meta-edit-prices-subtitle").value.trim();
+  if (!title) return;
+  plan.meta = { title, subtitle, workoutTitle, workoutSubtitle, mealSubtitle, pricesSubtitle };
+  document.title = title;
+  editingMeta = false;
+  savePlan();
+  render();
+}
+
+function addRule(app) {
+  const text = app.querySelector("#new-rule-text").value.trim();
+  if (!text) return;
+  plan.rules.push(text);
+  savePlan();
+  render();
+}
+function deleteRule(i) {
+  plan.rules.splice(i, 1);
+  savePlan();
   render();
 }
 
@@ -645,11 +713,32 @@ function render() {
     </div>
   `;
 
-  app.innerHTML = `
+  const metaHtml = editMode && editingMeta ? `
+    <div class="log-form">
+      <div class="log-field wide"><label for="meta-edit-title">Page title</label><input type="text" id="meta-edit-title" value="${escapeHtml(plan.meta.title)}" /></div>
+      <div class="log-field wide"><label for="meta-edit-subtitle">Subtitle</label><input type="text" id="meta-edit-subtitle" value="${escapeHtml(plan.meta.subtitle)}" /></div>
+      <div class="log-field wide"><label for="meta-edit-workout-title">Workout section title</label><input type="text" id="meta-edit-workout-title" value="${escapeHtml(plan.meta.workoutTitle)}" /></div>
+      <div class="log-field wide"><label for="meta-edit-workout-subtitle">Workout section subtitle</label><input type="text" id="meta-edit-workout-subtitle" value="${escapeHtml(plan.meta.workoutSubtitle)}" /></div>
+      <div class="log-field wide"><label for="meta-edit-meal-subtitle">Meal plan subtitle</label><input type="text" id="meta-edit-meal-subtitle" value="${escapeHtml(plan.meta.mealSubtitle)}" /></div>
+      <div class="log-field wide"><label for="meta-edit-prices-subtitle">Ingredient prices subtitle</label><input type="text" id="meta-edit-prices-subtitle" value="${escapeHtml(plan.meta.pricesSubtitle)}" /></div>
+    </div>
+    <div class="log-save-row">
+      <button class="btn btn-small" id="save-meta-btn" type="button">Save</button>
+      <button class="btn btn-ghost btn-small" id="cancel-meta-btn" type="button">Cancel</button>
+    </div>
+  ` : `
     <p class="eyebrow">Health</p>
-    <h1>Phase 2 — Fat Loss</h1>
-    <p class="subtitle">Goal: lose fat to a lean, defined body.</p>
-    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit health plan"}</button></div>
+    <h1>${escapeHtml(plan.meta.title)}</h1>
+    <p class="subtitle">${escapeHtml(plan.meta.subtitle)}</p>
+  `;
+
+  app.innerHTML = `
+    ${metaHtml}
+    <div class="edit-toggle-row">
+      <button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit health plan"}</button>
+      ${editMode && !editingMeta ? `<button class="btn btn-ghost btn-small" id="edit-meta-btn" type="button">Edit titles/subtitles</button>` : ""}
+    </div>
+    ${editMode ? `<div class="edit-fab"><button class="btn btn-small" id="done-editing-fab" type="button">Done editing</button></div>` : ""}
 
     <div class="layout">
       <div class="col-main">
@@ -657,8 +746,14 @@ function render() {
         <section class="card">
           ${statsHtml}
           <ol class="rules-list">
-            ${RULES.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
+            ${plan.rules.map((r, i) => `<li><span>${escapeHtml(r)}</span>${editMode ? `<button class="row-del" data-action="delete-rule" data-item="${i}" type="button">&times;</button>` : ""}</li>`).join("")}
           </ol>
+          ${editMode ? `
+            <div class="log-form" style="margin-top:12px;">
+              <div class="log-field wide"><label for="new-rule-text">New principle</label><input type="text" id="new-rule-text" placeholder="e.g. Track it or it doesn't happen" /></div>
+            </div>
+            <div class="log-save-row"><button class="btn btn-small" id="add-rule-btn" type="button">Add</button></div>
+          ` : ""}
         </section>
 
         <section class="card">
@@ -692,13 +787,13 @@ function render() {
 
         <section class="card">
           <h2>Meal plan</h2>
-          <p class="subtitle" style="margin-bottom:16px;">Lean proteins, more veg, controlled rice, no sugary drinks. Costs are Ho Chi Minh City market prices, Jul 2026.</p>
+          <p class="subtitle" style="margin-bottom:16px;">${escapeHtml(plan.meta.mealSubtitle)}</p>
           ${daysHtml}
         </section>
 
         <section class="card">
-          <h2>Full-Body A — bodyweight</h2>
-          <p class="subtitle" style="margin-bottom:6px;">3×/week (Mon · Wed · Fri) · ~25 min · 2 sets each, rest 60-90s, slow and controlled.</p>
+          <h2>${escapeHtml(plan.meta.workoutTitle)}</h2>
+          <p class="subtitle" style="margin-bottom:6px;">${escapeHtml(plan.meta.workoutSubtitle)}</p>
           <p class="progress-note" style="margin-bottom:16px;">Muscle burn is OK. Sharp or joint pain means stop.</p>
           <p class="eyebrow">Warm-up · 2-3 min</p>
           <ul class="prep-list">${plan.warmup.map(([name, time], i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-warmup" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
@@ -754,7 +849,7 @@ function render() {
 
         <section class="card">
           <h2>Ingredient prices</h2>
-          <p class="subtitle" style="margin-bottom:16px;">How each meal's cost is built. Researched Jul 2026 (Bách Hóa Xanh / Kamereo / HCMC market).</p>
+          <p class="subtitle" style="margin-bottom:16px;">${escapeHtml(plan.meta.pricesSubtitle)}</p>
           ${pricesHtml}
           ${editMode ? `
             <div class="log-form" style="margin-top:12px;">
@@ -788,6 +883,19 @@ function render() {
 
   const editToggleBtn = app.querySelector("#edit-toggle-btn");
   if (editToggleBtn) editToggleBtn.addEventListener("click", toggleEditMode);
+  const editMetaBtn = app.querySelector("#edit-meta-btn");
+  if (editMetaBtn) editMetaBtn.addEventListener("click", startEditMeta);
+  const saveMetaBtn = app.querySelector("#save-meta-btn");
+  if (saveMetaBtn) saveMetaBtn.addEventListener("click", () => saveEditMeta(app));
+  const cancelMetaBtn = app.querySelector("#cancel-meta-btn");
+  if (cancelMetaBtn) cancelMetaBtn.addEventListener("click", cancelEditMeta);
+  const doneFab = app.querySelector("#done-editing-fab");
+  if (doneFab) doneFab.addEventListener("click", toggleEditMode);
+  const addRuleBtn = app.querySelector("#add-rule-btn");
+  if (addRuleBtn) addRuleBtn.addEventListener("click", () => addRule(app));
+  app.querySelectorAll('[data-action="delete-rule"]').forEach(el => {
+    el.addEventListener("click", () => deleteRule(Number(el.getAttribute("data-item"))));
+  });
 
   const saveStatsBtn = app.querySelector("#save-stats-btn");
   if (saveStatsBtn) saveStatsBtn.addEventListener("click", () => saveStats(app));

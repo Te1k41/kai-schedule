@@ -26,6 +26,7 @@ export async function loadOrSeedSchedule(defaultBuilder) {
   if (value) return value;
   const seeded = defaultBuilder();
   for (const day of Object.keys(seeded)) {
+    if (!Array.isArray(seeded[day])) continue;
     seeded[day] = seeded[day].map(b => ({ id: uid(), note: "", detail: "", ...b }));
   }
   await saveData(SCHEDULE_KEY, seeded);
