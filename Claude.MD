@@ -63,36 +63,65 @@ kai-schedule/
   `PHASES` in roadmap.html is still a static array (roadmap content isn't
   user-editable, only task-completion is).
 
-## Sharing with a second person (girlfriend's account)
+## Sharing with a second person (self-serve pairing, no rooms/passwords)
 Finance stays fully private per person. Only `savings-goals`, `subscriptions-list`,
 and `schedule-blocks` are shared, **read-only, mutually**, via `partner.html`.
-This shipped in two steps:
-- **Done:** the data split above, `partner.html` itself, and `loadPartnerData()`.
-  `partner.html` has a `PARTNER_UID` map (currently empty/commented) — if the
-  signed-in user isn't in it, the page just says "not set up yet" rather than
-  attempting a read Firestore would reject anyway.
-- **Pending — needs both people's Firebase Auth UIDs** (Firebase Console →
-  Authentication → Users, once she's signed in once):
-  1. Fill in `partner.html`'s `PARTNER_UID` map with the real two UIDs.
-  2. Paste this into Firebase Console → Firestore Database → Rules → Publish
-     (replacing the current rules below — there's no `firestore.rules` file in
-     this repo, rules only live in the Console):
-     ```
-     rules_version = '2';
-     service cloud.firestore {
-       match /databases/{database}/documents {
-         match /users/{userId}/data/{key} {
-           allow read, write: if request.auth != null && request.auth.uid == userId;
-           allow read: if request.auth != null
-             && key in ['schedule-blocks', 'savings-goals', 'subscriptions-list']
-             && (
-               (request.auth.uid == 'KAI_UID_HERE' && userId == 'GF_UID_HERE') ||
-               (request.auth.uid == 'GF_UID_HERE' && userId == 'KAI_UID_HERE')
-             );
-         }
-       }
-     }
-     ```
+
+No hardcoded UIDs — `partner.html` has a real Connect/Disconnect flow, built on
+two new top-level Firestore collections (outside `users/`):
+- `pairInvites/{code}` — a one-time 6-character connect code (`{ fromUid, createdAt }`).
+  `partner.html`'s "Generate a code" button creates one via `createInvite()`
+  (`firebase-init.js`); the partner enters it, `redeemInvite(code)` reads the
+  invite, writes the pairing, then deletes the invite (one-time use).
+- `pairings/{pairId}` — `pairId` is `smallerUid_largerUid` so both sides land on
+  the same doc id; shape `{ uids: [a, b] /* sorted */, connectedAt }`.
+  `getMyPairing()` finds it via an `array-contains` query (no need to already
+  know the partner's UID). Either side can call `disconnectPairing(pairId)` to
+  unlink — a **Disconnect** button in `partner.html`.
+
+**Done:** the data split, `partner.html`'s connect/disconnect UI, and the four
+`firebase-init.js` exports above (`createInvite`, `redeemInvite`, `getMyPairing`,
+`disconnectPairing`).
+
+**Pending — one manual step, not code:** paste this into Firebase Console →
+Firestore Database → Rules → Publish (there's no `firestore.rules` file in this
+repo, rules only live in the Console; this replaces the rules shown further
+down, which are what's actually live until this is published):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function pairId(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+    function isPaired(otherUid) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/pairings/$(pairId(request.auth.uid, otherUid)));
+    }
+
+    match /users/{userId}/data/{key} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if key in ['schedule-blocks', 'savings-goals', 'subscriptions-list'] && isPaired(userId);
+    }
+
+    match /pairInvites/{code} {
+      allow create: if request.auth != null && request.resource.data.fromUid == request.auth.uid;
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.fromUid;
+    }
+
+    match /pairings/{pid} {
+      allow create: if request.auth != null
+        && request.resource.data.uids.size() == 2
+        && request.auth.uid in request.resource.data.uids
+        && pid == pairId(request.resource.data.uids[0], request.resource.data.uids[1]);
+      allow read, delete: if request.auth != null && request.auth.uid in resource.data.uids;
+    }
+  }
+}
+```
+Generic once published — works for any two people who complete the connect
+flow, no hand-editing per pairing, no UID lookups needed ever again.
 
 ## Firebase (already configured)
 - Project id: `kai-schedule-731c0`
@@ -150,6 +179,6 @@ Wake 6:30 → 06:30 workout, 07:10 shower, 07:35 breakfast, 08:00–12:00 work,
 - Add a custom favicon (currently 404s — harmless).
 - Optional: push notifications / reminders (would need a service worker or an
   external service; out of scope for pure static hosting).
-- Finish the sharing rollout: get both people's Firebase Auth UIDs, fill in
-  `partner.html`'s `PARTNER_UID` map, publish the updated Firestore rules —
-  see "Sharing with a second person" above.
+- Finish the sharing rollout: publish the pairing-enabled Firestore rules
+  (one paste into the Console, see "Sharing with a second person" above) —
+  the app-side code is already done, this is the only remaining step.

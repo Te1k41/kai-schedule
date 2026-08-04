@@ -112,9 +112,12 @@ map of what's stored where (full detail in `CLAUDE.md` if you need it):
   first.
 - **"Sign-in doesn't work"** — check `CLAUDE.md`'s "Known loose end"
   section (popup blocker issue, has a documented fix).
-- **"My partner can't see my savings/schedule"** — that feature needs
-  both Google account UIDs set up once (see `CLAUDE.md`, "Sharing with a
-  second person") — a one-time setup step, not a bug.
+- **"My partner can't see my savings/schedule"** — one of you needs to
+  generate a connect code on `partner.html` and the other needs to enter
+  it (one-time, self-serve, no code/database editing needed). If neither
+  of you can even get that far, the Firestore rules update for this
+  feature might not be published yet — see `CLAUDE.md`, "Sharing with a
+  second person."
 
 ## If you get stuck
 
