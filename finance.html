@@ -41,7 +41,7 @@
   .log-field { display: flex; flex-direction: column; gap: 5px; }
   .log-field.wide { grid-column: 1 / -1; }
   .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); min-height: 2.2em; display: flex; align-items: flex-end; }
-  .log-field input[type="number"], .log-field input[type="text"], .log-field input[type="date"], .log-field input[type="month"], .log-field select {
+  .log-field input[type="number"], .log-field input[type="text"], .log-field input[type="date"], .log-field input[type="month"], .log-field input[type="url"], .log-field select {
     font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
     border: 1px solid var(--border); border-radius: 2px; padding: 9px 10px; width: 100%;
   }
@@ -143,7 +143,7 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, initAuthUI, notifySaveFailed } from "./app-shell.js";
-import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, uid, fmtVnd, accountBalance, accountName, totalBalance } from "./finance-core.js";
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance } from "./finance-core.js";
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
 const EGG_COST_VND = 3200;
@@ -213,7 +213,7 @@ function accountOptionsHtml(selectedId) {
 
 function addAccount(app) {
   const name = app.querySelector("#acc-name").value.trim();
-  const startingBalance = Number(app.querySelector("#acc-start").value) || 0;
+  const startingBalance = parseAmount(app.querySelector("#acc-start").value);
   if (!name) return;
   data.accounts.push({ id: uid(), name, startingBalance });
   saveFinance();
@@ -223,7 +223,7 @@ function addAccount(app) {
 function addIncome(app) {
   const date = app.querySelector("#inc-date").value || todayDateStr();
   const source = app.querySelector("#inc-source").value.trim();
-  const amount = Number(app.querySelector("#inc-amount").value);
+  const amount = parseAmount(app.querySelector("#inc-amount").value);
   const account = app.querySelector("#inc-account").value;
   if (!amount) return;
   data.income.push({ id: uid(), date, source: source || "Income", amount, account });
@@ -235,10 +235,11 @@ function addExpense(app) {
   const date = app.querySelector("#exp-date").value || todayDateStr();
   const category = app.querySelector("#exp-category").value;
   const account = app.querySelector("#exp-account").value;
-  const amount = Number(app.querySelector("#exp-amount").value);
+  const amount = parseAmount(app.querySelector("#exp-amount").value);
   const note = app.querySelector("#exp-note").value.trim();
+  const link = app.querySelector("#exp-link").value.trim();
   if (!amount) return;
-  data.expenses.push({ id: uid(), date, category, amount, note, account });
+  data.expenses.push({ id: uid(), date, category, amount, note, account, link });
   saveFinance();
   render();
 }
@@ -253,11 +254,12 @@ function addSubscription(app) {
   const name = app.querySelector("#sub-name").value.trim();
   const category = app.querySelector("#sub-category").value;
   const account = app.querySelector("#sub-account").value;
-  const amount = Number(app.querySelector("#sub-amount").value);
+  const amount = parseAmount(app.querySelector("#sub-amount").value);
   const dueDay = Number(app.querySelector("#sub-dueday").value) || null;
   const endMonth = app.querySelector("#sub-end").value || null;
+  const link = app.querySelector("#sub-link").value.trim();
   if (!name || !amount) return;
-  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, lastLoggedMonth: null });
+  data.subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, link, lastLoggedMonth: null });
   applyRecurringSubscriptions();
   saveFinance();
   render();
@@ -344,17 +346,18 @@ function calendarHtml() {
 }
 
 function setBudget(catKey, value) {
-  data.budgets[catKey] = Number(value) || 0;
+  data.budgets[catKey] = parseAmount(value);
   saveFinance();
   render();
 }
 
 function addGoal(app) {
   const name = app.querySelector("#goal-name").value.trim();
-  const target = Number(app.querySelector("#goal-target").value);
-  const saved = Number(app.querySelector("#goal-saved").value) || 0;
+  const target = parseAmount(app.querySelector("#goal-target").value);
+  const saved = parseAmount(app.querySelector("#goal-saved").value);
+  const link = app.querySelector("#goal-link").value.trim();
   if (!name || !target) return;
-  data.goals.push({ id: uid(), name, target, saved });
+  data.goals.push({ id: uid(), name, target, saved, link });
   saveFinance();
   render();
 }
@@ -460,7 +463,7 @@ function render() {
     return `
     <div class="budget-row">
       <div class="budget-top">
-        <span class="budget-name">${escapeHtml(sub.name)}${ended ? " (ended)" : ""}</span>
+        <span class="budget-name">${escapeHtml(sub.name)}${sub.link ? ` <a href="${escapeHtml(sub.link)}" target="_blank" rel="noopener" title="${escapeHtml(sub.link)}">&#8599;</a>` : ""}${ended ? " (ended)" : ""}</span>
         <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${CAT_LABEL[sub.category] || "Other"} &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}${endLabel ? ` &middot; ${endLabel}` : ""}</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -486,7 +489,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td>${CAT_LABEL[e.category] || "Other"}</td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td>${CAT_LABEL[e.category] || "Other"}</td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
@@ -505,7 +508,7 @@ function render() {
         <div class="budget-bar-track"><div class="budget-bar-fill ${over ? "over" : ""}" style="width:${pct}%; background:${over ? "var(--danger)" : c.color};"></div></div>
         <div class="budget-edit">
           <label style="font-size:var(--fs-2xs); color:var(--ink-soft);">Monthly budget</label>
-          <input type="number" data-budget-cat="${c.key}" value="${budget || ""}" placeholder="0" />
+          <input type="text" inputmode="numeric" data-budget-cat="${c.key}" value="${budget || ""}" placeholder="0" />
         </div>
       </div>
     `;
@@ -516,7 +519,7 @@ function render() {
     return `
       <div class="goal-card">
         <div class="goal-top">
-          <span class="goal-name">${escapeHtml(g.name)}</span>
+          <span class="goal-name">${escapeHtml(g.name)}${g.link ? ` <a href="${escapeHtml(g.link)}" target="_blank" rel="noopener" title="${escapeHtml(g.link)}">&#8599;</a>` : ""}</span>
           <span class="goal-pct">${pct.toFixed(0)}%</span>
         </div>
         <div class="goal-amounts" style="margin-bottom:6px;">${fmtBoth(g.saved)} / ${fmtBoth(g.target)}</div>
@@ -559,8 +562,9 @@ function render() {
               <select id="exp-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
             </div>
             <div class="log-field"><label for="exp-account">From account</label><select id="exp-account">${accountOptionsHtml()}</select></div>
-            <div class="log-field amount"><label for="exp-amount">Amount (VND)</label><input type="number" id="exp-amount" placeholder="0" /></div>
+            <div class="log-field amount"><label for="exp-amount">Amount (VND)</label><input type="text" inputmode="numeric" id="exp-amount" placeholder="0" /></div>
             <div class="log-field wide"><label for="exp-note">Note</label><input type="text" id="exp-note" placeholder="optional" /></div>
+            <div class="log-field wide"><label for="exp-link">Link (optional, e.g. a digital service)</label><input type="url" id="exp-link" placeholder="https://..." /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-expense-btn" type="button">Add expense</button></div>
           <p class="eyebrow" style="margin-bottom:10px;">Recent expenses</p>
@@ -573,7 +577,7 @@ function render() {
             <div class="log-field"><label for="inc-date">Date</label><input type="date" id="inc-date" value="${todayDateStr()}" /></div>
             <div class="log-field"><label for="inc-source">Source</label><input type="text" id="inc-source" placeholder="Salary, freelance..." /></div>
             <div class="log-field"><label for="inc-account">Into account</label><select id="inc-account">${accountOptionsHtml()}</select></div>
-            <div class="log-field amount"><label for="inc-amount">Amount (VND)</label><input type="number" id="inc-amount" placeholder="0" /></div>
+            <div class="log-field amount"><label for="inc-amount">Amount (VND)</label><input type="text" inputmode="numeric" id="inc-amount" placeholder="0" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-income-btn" type="button">Add income</button></div>
           <p class="eyebrow" style="margin-bottom:10px;">Recent income</p>
@@ -587,8 +591,9 @@ function render() {
           <div class="log-form">
             <div class="log-field wide"><label for="goal-name">Name</label><input type="text" id="goal-name" placeholder="e.g. Security+ Voucher" /></div>
             <div class="log-field"><label for="goal-target-usd">Target (USD)</label><input type="number" id="goal-target-usd" placeholder="optional" /></div>
-            <div class="log-field"><label for="goal-target">Target (VND)</label><input type="number" id="goal-target" placeholder="0" /></div>
-            <div class="log-field"><label for="goal-saved">Saved (VND)</label><input type="number" id="goal-saved" placeholder="0" /></div>
+            <div class="log-field"><label for="goal-target">Target (VND)</label><input type="text" inputmode="numeric" id="goal-target" placeholder="0" /></div>
+            <div class="log-field"><label for="goal-saved">Saved (VND)</label><input type="text" inputmode="numeric" id="goal-saved" placeholder="0" /></div>
+            <div class="log-field wide"><label for="goal-link">Link (optional, e.g. a digital service)</label><input type="url" id="goal-link" placeholder="https://..." /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-goal-btn" type="button">Add goal</button></div>
         </section>
@@ -600,7 +605,7 @@ function render() {
           <p class="eyebrow" style="margin:20px 0 10px;">Add an account</p>
           <div class="log-form">
             <div class="log-field"><label for="acc-name">Name</label><input type="text" id="acc-name" placeholder="e.g. Cash, Vietcombank Card" /></div>
-            <div class="log-field"><label for="acc-start">Starting balance (VND)</label><input type="number" id="acc-start" placeholder="0" /></div>
+            <div class="log-field"><label for="acc-start">Starting balance (VND)</label><input type="text" inputmode="numeric" id="acc-start" placeholder="0" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-account-btn" type="button">Add account</button></div>
         </section>
@@ -622,13 +627,16 @@ function render() {
               <select id="sub-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
             </div>
             <div class="log-field"><label for="sub-account">Account</label><select id="sub-account">${accountOptionsHtml()}</select></div>
-            <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="number" id="sub-amount" placeholder="0" /></div>
+            <div class="log-field"><label for="sub-amount">Amount (VND/mo)</label><input type="text" inputmode="numeric" id="sub-amount" placeholder="0" /></div>
             <div class="log-field"><label for="sub-dueday">Due day (1-31)</label><input type="number" id="sub-dueday" placeholder="optional" min="1" max="31" /></div>
             <div class="log-field"><label for="sub-end">Ends after (optional)</label><input type="month" id="sub-end" /></div>
           </div>
+          <div class="log-form">
+            <div class="log-field wide"><label for="sub-link">Link (optional, e.g. the service's site)</label><input type="url" id="sub-link" placeholder="https://..." /></div>
+          </div>
           <p class="eyebrow" style="margin:20px 0 10px;">Or split a total over N months (e.g. paying off a loan)</p>
           <div class="log-form">
-            <div class="log-field"><label for="sub-total">Total to pay off (VND)</label><input type="number" id="sub-total" placeholder="e.g. 6000000" /></div>
+            <div class="log-field"><label for="sub-total">Total to pay off (VND)</label><input type="text" inputmode="numeric" id="sub-total" placeholder="e.g. 6,000,000" /></div>
             <div class="log-field"><label for="sub-months">Over how many months</label><input type="number" id="sub-months" placeholder="e.g. 6" min="1" /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
@@ -655,10 +663,10 @@ function render() {
   const subAmountInput = app.querySelector("#sub-amount");
   const subEndInput = app.querySelector("#sub-end");
   const recalcInstallment = () => {
-    const total = Number(subTotalInput.value);
+    const total = parseAmount(subTotalInput.value);
     const months = Number(subMonthsInput.value);
     if (total > 0 && months > 0) {
-      subAmountInput.value = Math.round(total / months);
+      subAmountInput.value = Math.round(total / months).toLocaleString();
       const d = new Date();
       d.setMonth(d.getMonth() + months - 1);
       subEndInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -666,6 +674,11 @@ function render() {
   };
   subTotalInput.addEventListener("input", recalcInstallment);
   subMonthsInput.addEventListener("input", recalcInstallment);
+  ["exp-amount", "inc-amount", "acc-start", "goal-target", "goal-saved", "sub-amount", "sub-total"].forEach(id => {
+    const el = app.querySelector(`#${id}`);
+    if (el) attachThousandsInput(el);
+  });
+  app.querySelectorAll("[data-budget-cat]").forEach(attachThousandsInput);
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
   });
@@ -705,7 +718,7 @@ function render() {
   if (goalUsdInput && goalVndInput && rate.usdToVnd) {
     goalUsdInput.addEventListener("input", () => {
       const usd = Number(goalUsdInput.value) || 0;
-      goalVndInput.value = usd ? Math.round(usd * effectiveRate()) : "";
+      goalVndInput.value = usd ? Math.round(usd * effectiveRate()).toLocaleString() : "";
     });
   }
 

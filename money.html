@@ -87,7 +87,7 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, initAuthUI, notifySaveFailed, showToast } from "./app-shell.js";
-import { STORAGE_KEY, CATEGORIES, CAT_LABEL, defaultFinanceData, uid, fmtVnd, accountName, totalBalance } from "./finance-core.js";
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, defaultFinanceData, uid, fmtVnd, parseAmount, attachThousandsInput, accountName, totalBalance } from "./finance-core.js";
 
 let data = defaultFinanceData();
 let loaded = false;
@@ -117,7 +117,7 @@ async function saveFinance() {
 }
 
 function addEntry(app) {
-  const amount = Number(app.querySelector("#qm-amount").value);
+  const amount = parseAmount(app.querySelector("#qm-amount").value);
   if (!amount) return;
   const account = app.querySelector("#qm-account").value;
   if (mode === "expense") {
@@ -160,7 +160,7 @@ function render() {
       <button class="mode-btn ${mode === "income" ? "active-income" : ""}" data-mode="income" type="button">+ Income</button>
     </div>
 
-    <div class="log-field amount"><label for="qm-amount">Amount (VND)</label><input type="number" id="qm-amount" placeholder="0" /></div>
+    <div class="log-field amount"><label for="qm-amount">Amount (VND)</label><input type="text" inputmode="numeric" id="qm-amount" placeholder="0" /></div>
     ${mode === "expense" ? `
       <div class="log-field"><label for="qm-category">Category</label>
         <select id="qm-category">${CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join("")}</select>
@@ -181,6 +181,8 @@ function render() {
     btn.addEventListener("click", () => { mode = btn.dataset.mode; render(); });
   });
   app.querySelector("#qm-save-btn").addEventListener("click", () => addEntry(app));
+  const qmAmountInput = app.querySelector("#qm-amount");
+  if (qmAmountInput) attachThousandsInput(qmAmountInput);
 }
 
 initAuthUI({
