@@ -59,7 +59,6 @@ Give it a minute — your site will be live at `https://<your-username>.github.i
   Google account. No extra setup per device.
 - **Free tier limits:** Firestore's free tier is far more than one person
   checking boxes a few times a day will ever use.
-- **Editing the schedule/roadmap:** the task lists live directly in
-  `schedule.html` and `roadmap.html` as plain JS arrays near the top of the
-  `<script>` block — edit the `label` (and `start`/`end` for the schedule)
-  fields directly.
+- **Editing content yourself:** see [GUIDE.md](./GUIDE.md) — the daily
+  schedule is now editable right in the app (no code), roadmap tasks and a
+  few other things still live in code, GUIDE.md walks through both.
