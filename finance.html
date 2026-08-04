@@ -626,6 +626,11 @@ function render() {
             <div class="log-field"><label for="sub-dueday">Due day (1-31)</label><input type="number" id="sub-dueday" placeholder="optional" min="1" max="31" /></div>
             <div class="log-field"><label for="sub-end">Ends after (optional)</label><input type="month" id="sub-end" /></div>
           </div>
+          <p class="eyebrow" style="margin:20px 0 10px;">Or split a total over N months (e.g. paying off a loan)</p>
+          <div class="log-form">
+            <div class="log-field"><label for="sub-total">Total to pay off (VND)</label><input type="number" id="sub-total" placeholder="e.g. 6000000" /></div>
+            <div class="log-field"><label for="sub-months">Over how many months</label><input type="number" id="sub-months" placeholder="e.g. 6" min="1" /></div>
+          </div>
           <div class="log-save-row"><button class="btn" id="add-sub-btn" type="button">Add subscription</button></div>
         </section>
 
@@ -645,6 +650,22 @@ function render() {
   app.querySelector("#add-account-btn").addEventListener("click", () => addAccount(app));
   app.querySelector("#cal-prev").addEventListener("click", () => shiftCalendar(-1));
   app.querySelector("#cal-next").addEventListener("click", () => shiftCalendar(1));
+  const subTotalInput = app.querySelector("#sub-total");
+  const subMonthsInput = app.querySelector("#sub-months");
+  const subAmountInput = app.querySelector("#sub-amount");
+  const subEndInput = app.querySelector("#sub-end");
+  const recalcInstallment = () => {
+    const total = Number(subTotalInput.value);
+    const months = Number(subMonthsInput.value);
+    if (total > 0 && months > 0) {
+      subAmountInput.value = Math.round(total / months);
+      const d = new Date();
+      d.setMonth(d.getMonth() + months - 1);
+      subEndInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    }
+  };
+  subTotalInput.addEventListener("input", recalcInstallment);
+  subMonthsInput.addEventListener("input", recalcInstallment);
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
   });
