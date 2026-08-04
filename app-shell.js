@@ -33,6 +33,50 @@ export async function loadOrSeedSchedule(defaultBuilder) {
   return seeded;
 }
 
+// ---- Theme (per-account customizable colors) ----
+
+export const THEME_KEY = "site-theme";
+export const DEFAULT_THEME = { paper: "#F2ECDD", ink: "#211E1A", vermillion: "#9E3A26", gold: "#806124" };
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+}
+function rgbToHex(r, g, b) {
+  const c = (n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, "0");
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+// Lightens (positive percent) or darkens (negative) a hex color.
+function shade(hex, percent) {
+  const { r, g, b } = hexToRgb(hex);
+  const amt = Math.round(2.55 * percent);
+  return rgbToHex(r + amt, g + amt, b + amt);
+}
+
+// Applies a theme (the 4 user-facing colors plus derived shades for the
+// softer tokens, same relationships the original hand-picked palette used)
+// as CSS custom properties on the root element, overriding shared.css's
+// defaults for this page load.
+export function applyThemeValues(theme) {
+  const root = document.documentElement.style;
+  const { r, g, b } = hexToRgb(theme.ink);
+  root.setProperty("--paper", theme.paper);
+  root.setProperty("--paper-deep", shade(theme.paper, -6));
+  root.setProperty("--ink", theme.ink);
+  root.setProperty("--ink-soft", shade(theme.ink, 55));
+  root.setProperty("--vermillion", theme.vermillion);
+  root.setProperty("--gold", theme.gold);
+  root.setProperty("--border", `rgba(${r},${g},${b},0.14)`);
+}
+
+// Loads the signed-in user's saved theme (if any) and applies it. Safe to
+// call on every page load — no-ops (stays on shared.css's defaults) if the
+// account has never set a custom theme.
+export async function applyTheme() {
+  const theme = await loadData(THEME_KEY).catch(() => null);
+  if (theme && theme.paper) applyThemeValues(theme);
+}
+
 export function escapeHtml(str) {
   const d = document.createElement("div");
   d.textContent = str;
@@ -71,6 +115,7 @@ export function initAuthUI({ onSignedIn, onSignedOut } = {}) {
         + '<button id="force-refresh-btn" title="Clear cache and reload the app fresh">Refresh app</button>';
       document.getElementById("signout-btn").addEventListener("click", () => signOutUser());
       document.getElementById("force-refresh-btn").addEventListener("click", forceRefresh);
+      applyTheme();
       if (onSignedIn) onSignedIn(user);
     } else {
       gate.style.display = "";

@@ -24,6 +24,12 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font); }
+  html { scrollbar-color: var(--vermillion) var(--paper-deep); scrollbar-width: thin; }
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: var(--paper-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--ink-soft); border-radius: 6px; border: 2px solid var(--paper-deep); background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--vermillion); background-clip: padding-box; }
+  ::-webkit-scrollbar-corner { background: var(--paper-deep); }
   body {
     min-height: 100vh; display: flex; align-items: center; padding: 40px 24px; position: relative; overflow-x: hidden;
     animation: page-in 0.4s ease-out;
@@ -154,7 +160,7 @@
   </div>
 <script type="module">
 import { signIn, watchAuth, loadData, saveData } from "./firebase-init.js";
-import { escapeHtml } from "./app-shell.js";
+import { escapeHtml, THEME_KEY, DEFAULT_THEME, applyThemeValues, applyTheme } from "./app-shell.js";
 
 const HOME_KEY = "home-meta";
 
@@ -175,6 +181,7 @@ const PLACEHOLDER_HOME = {
 const LINK_KEYS = ["now", "money", "schedule", "roadmap", "health", "finance", "partner"];
 
 let home = null;
+let theme = null;
 let editMode = false;
 
 function roadmapRealLink() { return { title: "SOC Analyst Roadmap", sub: "35 tasks, 5 phases, zero to job-ready" }; }
@@ -206,6 +213,9 @@ async function loadHome() {
     if (healthEngaged) home.links.health = healthRealLink();
     await saveData(HOME_KEY, home);
   }
+  theme = await loadData(THEME_KEY).catch(() => null);
+  if (!theme || !theme.paper) theme = { ...DEFAULT_THEME };
+
   applyHome();
   showAccountArea();
 }
@@ -238,6 +248,13 @@ function fieldRow(id, label, value) {
   return `<div style="margin-bottom:12px;"><label style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:4px;" for="${id}">${label}</label><input type="text" id="${id}" value="${escapeHtml(value)}" style="width:100%; font-family:var(--font); font-size:15px; color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" /></div>`;
 }
 
+function colorFieldRow(id, label, value) {
+  return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+    <input type="color" id="${id}" value="${value}" style="width:44px; height:36px; padding:2px; border:1px solid var(--border); border-radius:2px; background:var(--paper); cursor:pointer;" />
+    <label for="${id}" style="font-size:14px; color:var(--ink);">${label}</label>
+  </div>`;
+}
+
 function renderEditForm() {
   const hubLayout = document.getElementById("hub-layout");
   const formEl = document.getElementById("edit-form");
@@ -260,6 +277,13 @@ function renderEditForm() {
       ${fieldRow(`edit-link-${key}-title`, "Title", home.links[key].title)}
       ${fieldRow(`edit-link-${key}-sub`, "Description", home.links[key].sub)}
     `).join("")}
+    <p class="eyebrow" style="margin-top:24px;">Theme colors</p>
+    <p class="subtitle" style="margin-bottom:14px;">Applies everywhere on the site, not just this page.</p>
+    ${colorFieldRow("edit-theme-paper", "Background", theme.paper)}
+    ${colorFieldRow("edit-theme-ink", "Text", theme.ink)}
+    ${colorFieldRow("edit-theme-vermillion", "Accent", theme.vermillion)}
+    ${colorFieldRow("edit-theme-gold", "Secondary accent", theme.gold)}
+    <button type="button" id="reset-theme-btn" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:13px; padding:0; margin-bottom:10px;">Reset to default colors</button>
     <div style="display:flex; gap:14px; margin-top:10px;">
       <button class="btn" id="save-home-btn" type="button">Save</button>
       <button type="button" id="cancel-home-btn" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font);">Cancel</button>
@@ -267,6 +291,12 @@ function renderEditForm() {
   `;
   document.getElementById("save-home-btn").addEventListener("click", saveHomeForm);
   document.getElementById("cancel-home-btn").addEventListener("click", () => { editMode = false; renderEditForm(); });
+  document.getElementById("reset-theme-btn").addEventListener("click", () => {
+    document.getElementById("edit-theme-paper").value = DEFAULT_THEME.paper;
+    document.getElementById("edit-theme-ink").value = DEFAULT_THEME.ink;
+    document.getElementById("edit-theme-vermillion").value = DEFAULT_THEME.vermillion;
+    document.getElementById("edit-theme-gold").value = DEFAULT_THEME.gold;
+  });
 }
 
 function saveHomeForm() {
@@ -279,8 +309,16 @@ function saveHomeForm() {
       sub: document.getElementById(`edit-link-${key}-sub`).value.trim()
     };
   }
+  theme = {
+    paper: document.getElementById("edit-theme-paper").value,
+    ink: document.getElementById("edit-theme-ink").value,
+    vermillion: document.getElementById("edit-theme-vermillion").value,
+    gold: document.getElementById("edit-theme-gold").value
+  };
   saveData(HOME_KEY, home);
+  saveData(THEME_KEY, theme);
   applyHome();
+  applyThemeValues(theme);
   editMode = false;
   renderEditForm();
 }
@@ -291,7 +329,7 @@ function showSignInLink() {
   document.getElementById("signin-link-btn").addEventListener("click", () => signIn().catch(() => {}));
 }
 
-watchAuth((user) => { if (user) loadHome(); else showSignInLink(); });
+watchAuth((user) => { if (user) { applyTheme(); loadHome(); } else { showSignInLink(); } });
 </script>
 <script src="./pwa-init.js"></script>
 </body>
