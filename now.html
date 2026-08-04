@@ -11,7 +11,7 @@
 <link rel="icon" href="./assets/icon-192.png" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<meta name="apple-mobile-web-app-title" content="Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -52,7 +52,7 @@
   <div class="koi-bg" aria-hidden="true"></div>
 
   <div class="shell">
-    <a class="back-link" href="./index.html">&larr; Kai's Ops</a>
+    <a class="back-link" href="./index.html">&larr; Ops</a>
 
     <p class="eyebrow" id="boot-loading" style="text-align:center;">Loading…</p>
 
@@ -70,13 +70,13 @@
 
 <script type="module">
 import { escapeHtml, formatDetail, initAuthUI, nowMinutes, nowClockStr, todayAbbrev, findCurrentBlock, loadOrSeedSchedule } from "./app-shell.js";
-import { DAYS, defaultWeekSeed } from "./schedule-data.js";
+import { DAYS, genericWeekSeed } from "./schedule-data.js";
 
 let loaded = false;
 let weekBlocks = null;
 
 async function loadAndRender() {
-  weekBlocks = await loadOrSeedSchedule(defaultWeekSeed);
+  weekBlocks = await loadOrSeedSchedule(genericWeekSeed);
   loaded = true;
   render();
 }

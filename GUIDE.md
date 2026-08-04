@@ -74,6 +74,15 @@ in `shared.css` (`--cat-work`, `--cat-study`, `--cat-fitness`,
 `--cat-life`) — reuse one, or add a new `--cat-*` variable to
 `shared.css`'s `:root` block first if you want a genuinely new color.
 
+## Change the site name
+
+Currently "Ops" everywhere (kept neutral since other people use this too).
+It's just a text string in a few places — `manifest.json`'s `name`/
+`short_name`, each page's `<title>` and `apple-mobile-web-app-title` meta
+tag, `index.html`'s eyebrow label, and the "&larr; Ops" back-links on
+now.html/money.html/partner.html. Find-and-replace across those, no logic
+involved.
+
 ## Change the site's look (colors, fonts)
 
 `shared.css`, top of the file, the `:root { ... }` block:

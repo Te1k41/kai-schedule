@@ -1,6 +1,6 @@
 {
-  "name": "Kai's Ops",
-  "short_name": "Kai Ops",
+  "name": "Ops",
+  "short_name": "Ops",
   "description": "Daily schedule, SOC roadmap, health, and finance — synced across devices.",
   "start_url": "./index.html",
   "scope": "./",

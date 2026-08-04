@@ -11,7 +11,7 @@
 <link rel="icon" href="./assets/icon-192.png" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<meta name="apple-mobile-web-app-title" content="Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -191,7 +191,7 @@ function render() {
         <div class="log-save-row"><button class="btn" id="redeem-code-btn" type="button" ${connectBusy ? "disabled" : ""}>Connect</button></div>
       </section>
 
-      <p class="footer"><a href="./index.html">&larr; Kai's Ops</a></p>
+      <p class="footer"><a href="./index.html">&larr; Ops</a></p>
     `;
     app.querySelector("#gen-code-btn").addEventListener("click", handleGenerateCode);
     app.querySelector("#redeem-code-btn").addEventListener("click", () => handleRedeem(app));
@@ -248,7 +248,7 @@ function render() {
       ${subsHtml}
     </section>
 
-    <p class="footer"><a href="./index.html">&larr; Kai's Ops</a></p>
+    <p class="footer"><a href="./index.html">&larr; Ops</a></p>
   `;
   app.querySelector("#disconnect-btn").addEventListener("click", handleDisconnect);
 }

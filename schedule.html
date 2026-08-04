@@ -11,7 +11,7 @@
 <link rel="icon" href="./assets/icon-192.png" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<meta name="apple-mobile-web-app-title" content="Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -134,7 +134,7 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed, uid, toMinutes, nowMinutes, nowClockStr, todayAbbrev, findCurrentBlock, loadOrSeedSchedule, SCHEDULE_KEY } from "./app-shell.js";
-import { DAYS, DAY_FULL, defaultWeekSeed } from "./schedule-data.js";
+import { DAYS, DAY_FULL, genericWeekSeed } from "./schedule-data.js";
 
 const CAT_TAGS = { work: "Work", study: "Study", fitness: "Train", life: "Life" };
 const CAT_COLOR_VARS = { work: "var(--cat-work)", study: "var(--cat-study)", fitness: "var(--cat-fitness)", life: "var(--cat-life)" };
@@ -152,7 +152,7 @@ let selectedDay = todayAbbrev(DAYS);
 
 async function loadAll() {
   const [scheduleValue, checkedValue] = await Promise.all([
-    loadOrSeedSchedule(defaultWeekSeed),
+    loadOrSeedSchedule(genericWeekSeed),
     loadData(STORAGE_KEY).catch(() => null)
   ]);
   weekBlocks = scheduleValue;

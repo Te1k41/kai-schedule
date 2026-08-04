@@ -48,6 +48,28 @@ export function weekdayTemplate(day) {
   ];
 }
 
+// Generic starter for a brand-new account — no reference to MEALS or any
+// of the real hardcoded content below, just abstract placeholder blocks
+// the person is expected to edit into their own actual day.
+export function genericWeekSeed() {
+  const week = {};
+  for (const d of DAYS) {
+    week[d] = [
+      { start: "07:00", end: "07:30", cat: "life", label: "Wake up" },
+      { start: "07:30", end: "08:00", cat: "life", label: "Breakfast" },
+      { start: "08:00", end: "12:00", cat: "work", label: "Work / study block" },
+      { start: "12:00", end: "13:00", cat: "life", label: "Lunch" },
+      { start: "13:00", end: "17:00", cat: "work", label: "Work / study block" },
+      { start: "17:00", end: "18:00", cat: "fitness", label: "Exercise" },
+      { start: "18:00", end: "19:00", cat: "life", label: "Dinner" },
+      { start: "19:00", end: "22:00", cat: "life", label: "Free time" },
+      { start: "22:00", end: "22:30", cat: "life", label: "Wind-down" },
+      { start: "22:30", end: "07:00", cat: "life", label: "Sleep" }
+    ];
+  }
+  return week;
+}
+
 export function defaultWeekSeed() {
   const week = {};
   for (const d of DAYS) {

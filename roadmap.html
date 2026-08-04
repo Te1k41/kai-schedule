@@ -11,7 +11,7 @@
 <link rel="icon" href="./assets/icon-192.png" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kai Ops">
+<meta name="apple-mobile-web-app-title" content="Ops">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -123,6 +123,25 @@
     .phase-note { padding-left: 48px; }
     .task-row { padding-left: 48px; }
   }
+
+  .edit-toggle-row { margin: -18px 0 20px; }
+  .task-edit-controls { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; align-self: flex-start; }
+  .phase-edit-controls { display: flex; gap: 6px; }
+  .task-edit-row { align-items: stretch; }
+  .phase-edit-form { padding: 0 2px 16px calc(clamp(48px, 3.6vw, 76px) + 16px); }
+  .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
+  .row-del:hover { color: var(--danger); }
+
+  .log-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .log-field { display: flex; flex-direction: column; gap: 5px; }
+  .log-field.wide { grid-column: 1 / -1; }
+  .log-field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+  .log-field input, .log-field textarea {
+    font-family: var(--font); font-size: var(--fs-base); color: var(--ink); background: var(--paper);
+    border: 1px solid var(--border); border-radius: 2px; padding: 9px 10px; width: 100%; resize: vertical;
+  }
+  .log-field input:focus-visible, .log-field textarea:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 1px; }
+  .log-save-row { display: flex; align-items: center; gap: 14px; }
 </style>
 </head>
 <body>
@@ -147,9 +166,9 @@
 
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
-import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed } from "./app-shell.js";
+import { escapeHtml, formatDetail, initAuthUI, notifySaveFailed, uid } from "./app-shell.js";
 
-const PHASES = [
+const DEFAULT_PHASES = [
   {
     id: "p1", title: "Foundations", weeks: "Weeks 1-3",
     note: "Networking and Linux basics - nothing else clicks without them.",
@@ -236,7 +255,7 @@ const PHASES = [
   }
 ];
 
-const RESOURCES = [
+const DEFAULT_RESOURCES = [
   { phase: "Foundations", items: [
     { name: "TryHackMe", url: "https://tryhackme.com", cost: "Free (mostly)", note: "Pre Security path — a few rooms need Premium later" },
     { name: "TryHackMe's free content guide", url: "https://tryhackme.com/resources/blog/free_path", cost: "Free", note: "Official guide to what's free on the platform before Premium" },
@@ -267,30 +286,65 @@ const RESOURCES = [
   ]}
 ];
 
+// Small, obviously-placeholder starter for a brand-new account — never the
+// current owner's real career-roadmap content.
+const PLACEHOLDER_PHASES = [
+  {
+    id: "ph1", title: "Example Phase", weeks: "Weeks 1-3",
+    note: "This is a placeholder — tap \"Edit roadmap\" below to rewrite this into your own plan, phase by phase.",
+    tasks: [
+      { id: "pt1", label: "Example task — edit or delete this", detail: "Tap Edit on this task to change the label and this detail text, or delete it and add your own." },
+      { id: "pt2", label: "Another example task", detail: "" }
+    ]
+  }
+];
+const PLACEHOLDER_RESOURCES = [
+  { phase: "Example Phase", items: [
+    { name: "Example resource", url: "https://example.com", cost: "Free", note: "Add your own links here" }
+  ]}
+];
+
 const STORAGE_KEY = "soc-roadmap-progress";
 const NOTES_KEY = "roadmap-notes";
+const PLAN_KEY = "roadmap-phases";
 let progress = {};
 let notes = "";
+let phases = [];
+let resources = [];
 let openPhases = new Set();
 let loaded = false;
 let resetArmed = false;
 let notesSaveTimer = null;
+let editMode = false;
+let editingPhaseId = null;
+let editingTaskId = null;
 
 function flatTasks() {
-  return PHASES.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
+  return phases.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
 }
 function totalCount() { return flatTasks().length; }
 function doneCount() { return flatTasks().filter(t => progress[t.id]).length; }
 function nextTask() { return flatTasks().find(t => !progress[t.id]) || null; }
 
 async function loadProgress() {
-  try {
-    const [progressValue, notesValue] = await Promise.all([loadData(STORAGE_KEY), loadData(NOTES_KEY)]);
-    if (progressValue) progress = progressValue;
-    if (typeof notesValue === "string") notes = notesValue;
-  } catch (e) {
-    progress = {};
+  const [progressValue, notesValue, planValue] = await Promise.all([
+    loadData(STORAGE_KEY).catch(() => null),
+    loadData(NOTES_KEY).catch(() => null),
+    loadData(PLAN_KEY).catch(() => null)
+  ]);
+  progress = progressValue || {};
+  notes = typeof notesValue === "string" ? notesValue : "";
+
+  if (planValue && Array.isArray(planValue.phases)) {
+    phases = planValue.phases;
+    resources = Array.isArray(planValue.resources) ? planValue.resources : [];
+  } else {
+    const hasEngagement = Object.keys(progress).length > 0 || notes.trim().length > 0;
+    phases = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_PHASES : PLACEHOLDER_PHASES));
+    resources = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_RESOURCES : PLACEHOLDER_RESOURCES));
+    await savePlan();
   }
+
   loaded = true;
   const nt = nextTask();
   if (nt) openPhases.add(nt.phaseId);
@@ -300,6 +354,108 @@ async function loadProgress() {
 async function saveProgress() {
   const ok = await saveData(STORAGE_KEY, progress);
   if (!ok) notifySaveFailed();
+}
+
+async function savePlan() {
+  const ok = await saveData(PLAN_KEY, { phases, resources });
+  if (!ok) notifySaveFailed();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  editingPhaseId = null;
+  editingTaskId = null;
+  render();
+}
+
+function startEditPhase(id) {
+  editingPhaseId = id;
+  render();
+}
+function cancelEditPhase() {
+  editingPhaseId = null;
+  render();
+}
+function saveEditPhase(app, phaseId) {
+  const title = app.querySelector("#phase-edit-title").value.trim();
+  const weeks = app.querySelector("#phase-edit-weeks").value.trim();
+  const note = app.querySelector("#phase-edit-note").value.trim();
+  if (!title) return;
+  const phase = phases.find(p => p.id === phaseId);
+  if (phase) Object.assign(phase, { title, weeks, note });
+  editingPhaseId = null;
+  savePlan();
+  render();
+}
+function deletePhase(id) {
+  phases = phases.filter(p => p.id !== id);
+  savePlan();
+  render();
+}
+function addPhase(app) {
+  const title = app.querySelector("#new-phase-title").value.trim();
+  const weeks = app.querySelector("#new-phase-weeks").value.trim();
+  if (!title) return;
+  phases.push({ id: uid(), title, weeks, note: "", tasks: [] });
+  savePlan();
+  render();
+}
+
+function startEditTask(id) {
+  editingTaskId = id;
+  render();
+}
+function cancelEditTask() {
+  editingTaskId = null;
+  render();
+}
+function saveEditTask(app, phaseId, taskId) {
+  const label = app.querySelector("#task-edit-label").value.trim();
+  const detail = app.querySelector("#task-edit-detail").value.trim();
+  if (!label) return;
+  const phase = phases.find(p => p.id === phaseId);
+  const t = phase && phase.tasks.find(t => t.id === taskId);
+  if (t) Object.assign(t, { label, detail });
+  editingTaskId = null;
+  savePlan();
+  render();
+}
+function deleteTask(phaseId, taskId) {
+  const phase = phases.find(p => p.id === phaseId);
+  if (!phase) return;
+  phase.tasks = phase.tasks.filter(t => t.id !== taskId);
+  savePlan();
+  render();
+}
+function addTask(app, phaseId) {
+  const label = app.querySelector(`#add-task-label-${phaseId}`).value.trim();
+  const detail = app.querySelector(`#add-task-detail-${phaseId}`).value.trim();
+  if (!label) return;
+  const phase = phases.find(p => p.id === phaseId);
+  if (!phase) return;
+  phase.tasks.push({ id: uid(), label, detail });
+  savePlan();
+  render();
+}
+
+function addResource(app) {
+  const group = app.querySelector("#res-group").value.trim();
+  const name = app.querySelector("#res-name").value.trim();
+  const url = app.querySelector("#res-url").value.trim();
+  const cost = app.querySelector("#res-cost").value.trim();
+  const note = app.querySelector("#res-note").value.trim();
+  if (!group || !name) return;
+  let g = resources.find(r => r.phase === group);
+  if (!g) { g = { phase: group, items: [] }; resources.push(g); }
+  g.items.push({ name, url, cost, note });
+  savePlan();
+  render();
+}
+function deleteResource(groupIdx, itemIdx) {
+  resources[groupIdx].items.splice(itemIdx, 1);
+  if (resources[groupIdx].items.length === 0) resources.splice(groupIdx, 1);
+  savePlan();
+  render();
 }
 
 function onNotesInput(value) {
@@ -333,7 +489,7 @@ async function confirmReset() {
   resetArmed = false;
   progress = {};
   await saveProgress();
-  openPhases = new Set([PHASES[0].id]);
+  openPhases = phases[0] ? new Set([phases[0].id]) : new Set();
   render();
 }
 
@@ -363,55 +519,127 @@ function render() {
     </div>
   `;
 
-  const phasesHtml = PHASES.map((phase, i) => {
+  const phasesHtml = phases.map((phase, i) => {
     const pDone = phase.tasks.filter(t => progress[t.id]).length;
-    const isOpen = openPhases.has(phase.id);
+    const isOpen = openPhases.has(phase.id) || editMode;
     const isCurrentPhase = nt && nt.phaseId === phase.id;
     const tasksHtml = phase.tasks.map(t => {
       const checked = !!progress[t.id];
       const id = `chk-${t.id}`;
+
+      if (editMode && editingTaskId === t.id) {
+        return `
+          <div class="task-row task-edit-row">
+            <div class="task-body">
+              <div class="log-form">
+                <div class="log-field wide"><label for="task-edit-label">Label</label><input type="text" id="task-edit-label" value="${escapeHtml(t.label)}" /></div>
+                <div class="log-field wide"><label for="task-edit-detail">Detail (optional)</label><textarea id="task-edit-detail" rows="3">${escapeHtml(t.detail || "")}</textarea></div>
+              </div>
+              <div class="log-save-row">
+                <button class="btn btn-small" data-action="save-task" data-phase="${phase.id}" data-id="${t.id}" type="button">Save</button>
+                <button class="btn btn-ghost btn-small" data-action="cancel-edit-task" type="button">Cancel</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       const detailHtml = t.detail ? `
         <details class="task-detail">
           <summary></summary>
           <div class="detail-body">${formatDetail(t.detail)}</div>
         </details>
       ` : "";
+      const editControls = editMode ? `
+        <div class="task-edit-controls">
+          <button class="btn btn-ghost btn-small" data-action="edit-task" data-id="${t.id}" type="button">Edit</button>
+          <button class="btn btn-ghost btn-small" data-action="delete-task" data-phase="${phase.id}" data-id="${t.id}" type="button">Delete</button>
+        </div>
+      ` : "";
       return `
         <div class="task-row">
-          <input type="checkbox" id="${id}" data-action="toggle-task" data-id="${t.id}" ${checked ? "checked" : ""} />
+          ${editMode ? "" : `<input type="checkbox" id="${id}" data-action="toggle-task" data-id="${t.id}" ${checked ? "checked" : ""} />`}
           <div class="task-body">
-            <label for="${id}" class="task-label${checked ? " checked" : ""}">${escapeHtml(t.label)}</label>
+            ${editMode ? `<span class="task-label${checked ? " checked" : ""}">${escapeHtml(t.label)}</span>` : `<label for="${id}" class="task-label${checked ? " checked" : ""}">${escapeHtml(t.label)}</label>`}
             ${detailHtml}
           </div>
+          ${editControls}
         </div>
       `;
     }).join("");
+
+    const addTaskHtml = editMode ? `
+      <div class="task-row task-edit-row">
+        <div class="task-body">
+          <div class="log-form">
+            <div class="log-field wide"><label for="add-task-label-${phase.id}">New task label</label><input type="text" id="add-task-label-${phase.id}" placeholder="e.g. Finish domain 3 notes" /></div>
+            <div class="log-field wide"><label for="add-task-detail-${phase.id}">Detail (optional)</label><textarea id="add-task-detail-${phase.id}" rows="2"></textarea></div>
+          </div>
+          <div class="log-save-row"><button class="btn btn-small" data-action="add-task" data-phase="${phase.id}" type="button">Add task</button></div>
+        </div>
+      </div>
+    ` : "";
+
+    const phaseNoteHtml = editMode && editingPhaseId === phase.id ? `
+      <div class="phase-edit-form">
+        <div class="log-form">
+          <div class="log-field"><label for="phase-edit-title">Title</label><input type="text" id="phase-edit-title" value="${escapeHtml(phase.title)}" /></div>
+          <div class="log-field"><label for="phase-edit-weeks">Weeks / timeframe</label><input type="text" id="phase-edit-weeks" value="${escapeHtml(phase.weeks)}" /></div>
+          <div class="log-field wide"><label for="phase-edit-note">Note</label><textarea id="phase-edit-note" rows="2">${escapeHtml(phase.note)}</textarea></div>
+        </div>
+        <div class="log-save-row">
+          <button class="btn btn-small" data-action="save-phase" data-id="${phase.id}" type="button">Save</button>
+          <button class="btn btn-ghost btn-small" data-action="cancel-edit-phase" type="button">Cancel</button>
+        </div>
+      </div>
+    ` : `<p class="phase-note">${escapeHtml(phase.note)}</p>`;
+
+    const phaseEditControls = editMode ? `
+      <span class="phase-edit-controls">
+        <button class="btn btn-ghost btn-small" data-action="edit-phase" data-id="${phase.id}" type="button">Edit</button>
+        <button class="btn btn-ghost btn-small" data-action="delete-phase" data-id="${phase.id}" type="button">Delete</button>
+      </span>
+    ` : "";
 
     return `
       <details class="phase" data-action="phase" data-id="${phase.id}" ${isOpen ? "open" : ""}>
         <summary>
           <div class="phase-header">
-            <span class="phase-num${isCurrentPhase ? " current" : ""}" style="--phase-color:var(--phase${i + 1})">${String(i + 1).padStart(2, "0")}</span>
+            <span class="phase-num${isCurrentPhase ? " current" : ""}" style="--phase-color:var(--phase${(i % 5) + 1})">${String(i + 1).padStart(2, "0")}</span>
             <span class="phase-text">
               <span class="phase-title">${escapeHtml(phase.title)}</span>
               <span class="phase-weeks">${escapeHtml(phase.weeks)}</span>
             </span>
             <span class="phase-header-right">
+              ${phaseEditControls}
               <span class="phase-count">${pDone}/${phase.tasks.length}</span>
               <span class="chevron">▾</span>
             </span>
           </div>
         </summary>
-        <p class="phase-note">${escapeHtml(phase.note)}</p>
+        ${phaseNoteHtml}
         ${tasksHtml}
+        ${addTaskHtml}
       </details>
     `;
   }).join("");
+
+  const addPhaseHtml = editMode ? `
+    <div class="phase-edit-form" style="border-top:1px solid var(--border); padding-top:16px; margin-top:16px;">
+      <p class="panel-label">Add a phase</p>
+      <div class="log-form">
+        <div class="log-field"><label for="new-phase-title">Title</label><input type="text" id="new-phase-title" placeholder="e.g. Cloud Security" /></div>
+        <div class="log-field"><label for="new-phase-weeks">Weeks / timeframe</label><input type="text" id="new-phase-weeks" placeholder="e.g. Weeks 20+" /></div>
+      </div>
+      <div class="log-save-row"><button class="btn btn-small" id="add-phase-btn" type="button">Add phase</button></div>
+    </div>
+  ` : "";
 
   app.innerHTML = `
     <p class="eyebrow">Roadmap</p>
     <h1>Zero to SOC Analyst</h1>
     <p class="subtitle">Your step-by-step path into a Tier 1 SOC role. One task at a time - check it off, and the next one lights up.</p>
+    <div class="edit-toggle-row"><button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit roadmap"}</button></div>
 
     <details class="resource-box">
       <summary>
@@ -419,24 +647,39 @@ function render() {
         <span class="chevron">▾</span>
       </summary>
       <div class="resource-grid">
-        ${RESOURCES.map(group => `
+        ${resources.map((group, gi) => `
           <div class="resource-group">
             <p class="resource-group-title">${escapeHtml(group.phase)}</p>
-            ${group.items.map(r => `
+            ${group.items.map((r, ii) => `
               <div class="resource-row">
                 <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.name)}</a>
                 <span class="resource-cost">${escapeHtml(r.cost)}</span>
                 <span class="resource-note">${escapeHtml(r.note)}</span>
+                ${editMode ? `<button class="row-del" data-action="delete-resource" data-group="${gi}" data-item="${ii}" type="button">&times;</button>` : ""}
               </div>
             `).join("")}
           </div>
         `).join("")}
       </div>
+      ${editMode ? `
+        <div class="phase-edit-form" style="border-top:1px solid var(--border); padding-top:16px; margin-top:16px;">
+          <p class="panel-label">Add a resource</p>
+          <div class="log-form">
+            <div class="log-field"><label for="res-group">Group</label><input type="text" id="res-group" placeholder="e.g. Foundations" /></div>
+            <div class="log-field"><label for="res-name">Name</label><input type="text" id="res-name" placeholder="e.g. TryHackMe" /></div>
+            <div class="log-field"><label for="res-url">URL</label><input type="text" id="res-url" placeholder="https://..." /></div>
+            <div class="log-field"><label for="res-cost">Cost</label><input type="text" id="res-cost" placeholder="e.g. Free" /></div>
+            <div class="log-field wide"><label for="res-note">Note</label><input type="text" id="res-note" placeholder="optional" /></div>
+          </div>
+          <div class="log-save-row"><button class="btn btn-small" id="add-resource-btn" type="button">Add resource</button></div>
+        </div>
+      ` : ""}
     </details>
 
     <div class="layout">
       <div class="col-main">
         ${phasesHtml}
+        ${addPhaseHtml}
         <div class="footer">
           <span>Saved automatically</span>
           ${resetArmed ? `
@@ -484,6 +727,45 @@ function render() {
   if (resetCancelBtn) resetCancelBtn.addEventListener("click", cancelReset);
   const notesBox = app.querySelector("#roadmap-notes");
   if (notesBox) notesBox.addEventListener("input", () => onNotesInput(notesBox.value));
+
+  const editToggleBtn = app.querySelector("#edit-toggle-btn");
+  if (editToggleBtn) editToggleBtn.addEventListener("click", toggleEditMode);
+  app.querySelectorAll('[data-action="edit-phase"]').forEach(el => {
+    el.addEventListener("click", () => startEditPhase(el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="delete-phase"]').forEach(el => {
+    el.addEventListener("click", () => deletePhase(el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="save-phase"]').forEach(el => {
+    el.addEventListener("click", () => saveEditPhase(app, el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="cancel-edit-phase"]').forEach(el => {
+    el.addEventListener("click", cancelEditPhase);
+  });
+  const addPhaseBtn = app.querySelector("#add-phase-btn");
+  if (addPhaseBtn) addPhaseBtn.addEventListener("click", () => addPhase(app));
+
+  app.querySelectorAll('[data-action="edit-task"]').forEach(el => {
+    el.addEventListener("click", () => startEditTask(el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="delete-task"]').forEach(el => {
+    el.addEventListener("click", () => deleteTask(el.getAttribute("data-phase"), el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="save-task"]').forEach(el => {
+    el.addEventListener("click", () => saveEditTask(app, el.getAttribute("data-phase"), el.getAttribute("data-id")));
+  });
+  app.querySelectorAll('[data-action="cancel-edit-task"]').forEach(el => {
+    el.addEventListener("click", cancelEditTask);
+  });
+  app.querySelectorAll('[data-action="add-task"]').forEach(el => {
+    el.addEventListener("click", () => addTask(app, el.getAttribute("data-phase")));
+  });
+
+  app.querySelectorAll('[data-action="delete-resource"]').forEach(el => {
+    el.addEventListener("click", () => deleteResource(Number(el.getAttribute("data-group")), Number(el.getAttribute("data-item"))));
+  });
+  const addResourceBtn = app.querySelector("#add-resource-btn");
+  if (addResourceBtn) addResourceBtn.addEventListener("click", () => addResource(app));
 }
 
 initAuthUI({
