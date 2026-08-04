@@ -11,9 +11,12 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 import {
-  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDoc,
+  getDocFromCache,
   setDoc
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
@@ -30,7 +33,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 const provider = new GoogleAuthProvider();
 
 export function signIn() {
@@ -51,8 +56,10 @@ export function watchAuth(callback) {
 export async function loadData(key) {
   const user = auth.currentUser;
   if (!user) return null;
+  const ref = doc(db, "users", user.uid, "data", key);
   try {
-    const ref = doc(db, "users", user.uid, "data", key);
+    const cached = await getDocFromCache(ref).catch(() => null);
+    if (cached && cached.exists()) return cached.data().value;
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data().value : null;
   } catch (e) {
