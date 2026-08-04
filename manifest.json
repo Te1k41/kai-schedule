@@ -1,7 +1,7 @@
 {
   "name": "Ops",
   "short_name": "Ops",
-  "description": "Daily schedule, SOC roadmap, health, and finance — synced across devices.",
+  "description": "Daily schedule, goals roadmap, health, and finance — synced across devices.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -14,7 +14,7 @@
   "shortcuts": [
     { "name": "Now", "url": "./now.html", "description": "What should I be doing right now" },
     { "name": "Quick log", "url": "./money.html", "description": "Log an expense or income fast" },
-    { "name": "Roadmap", "url": "./roadmap.html", "description": "SOC analyst roadmap progress" },
+    { "name": "Roadmap", "url": "./roadmap.html", "description": "Roadmap progress" },
     { "name": "Health", "url": "./health.html", "description": "Today's log and meal plan" }
   ]
 }

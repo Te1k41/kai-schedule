@@ -149,7 +149,7 @@ import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, defa
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
 const EGG_COST_VND = 3200;
-const TRYHACKME_MONTHLY_USD = 14;
+const SUBSCRIPTION_MONTHLY_USD = 14;
 const SAVINGS_KEY = "savings-goals";
 const SUBS_KEY = "subscriptions-list";
 
@@ -469,14 +469,14 @@ function updateEquivalence(vndAmount) {
   if (!equivEl || !vndAmount || vndAmount <= 0) { if (equivEl) equivEl.innerHTML = ""; return; }
   const days = (vndAmount / AVG_DAILY_FOOD_COST_VND).toFixed(1);
   const eggs = Math.floor(vndAmount / EGG_COST_VND);
-  const thmMonthlyVnd = rate.usdToVnd ? TRYHACKME_MONTHLY_USD * rate.usdToVnd : null;
-  const thmPct = thmMonthlyVnd ? ((vndAmount / thmMonthlyVnd) * 100).toFixed(0) : null;
+  const subMonthlyVnd = rate.usdToVnd ? SUBSCRIPTION_MONTHLY_USD * rate.usdToVnd : null;
+  const subPct = subMonthlyVnd ? ((vndAmount / subMonthlyVnd) * 100).toFixed(0) : null;
   equivEl.innerHTML = `
     <p style="margin:0 0 6px; font-weight:700;">That's roughly:</p>
     <ul style="margin:0; padding-left:18px;">
       <li>${days} day${days == 1 ? "" : "s"} of food budget (~${fmtBoth(AVG_DAILY_FOOD_COST_VND)}/day)</li>
       <li>${eggs} eggs (${fmtBoth(EGG_COST_VND)} each)</li>
-      ${thmPct ? `<li>${thmPct}% of a TryHackMe monthly sub ($${TRYHACKME_MONTHLY_USD})</li>` : ""}
+      ${subPct ? `<li>${subPct}% of a $${SUBSCRIPTION_MONTHLY_USD}/mo subscription</li>` : ""}
     </ul>
   `;
 }
@@ -526,7 +526,7 @@ function render() {
       </div>
     </div>
   `;
-  }).join("") : `<p class="rows-empty">No recurring fees yet — add one below (Claude Pro, TryHackMe, etc).</p>`;
+  }).join("") : `<p class="rows-empty">No recurring fees yet — add one below (a streaming sub, a course platform, etc).</p>`;
 
   const incomeRows = [...data.income].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
   const incomeHtml = incomeRows.length ? `
@@ -585,7 +585,7 @@ function render() {
         </div>
       </div>
     `;
-  }).join("") : `<p class="rows-empty">No savings goals yet — add one below (e.g. TryHackMe sub, Security+ voucher).</p>`;
+  }).join("") : `<p class="rows-empty">No savings goals yet — add one below (e.g. a course, a certification, new gear).</p>`;
 
   app.innerHTML = `
     <p class="eyebrow">Finance</p>
@@ -672,7 +672,7 @@ function render() {
 
         <section class="card">
           <h2>Recurring subscriptions</h2>
-          <p class="subtitle" style="margin-bottom:12px;">Fixed monthly fees (Claude Pro, TryHackMe, etc). Each auto-logs itself as an expense the first time you open this page in a new month.</p>
+          <p class="subtitle" style="margin-bottom:12px;">Fixed monthly fees (streaming, software subs, memberships, etc). Each auto-logs itself as an expense the first time you open this page in a new month.</p>
           ${subsHtml}
           <p class="eyebrow" style="margin:20px 0 10px;">Add a subscription</p>
           <div class="log-form">

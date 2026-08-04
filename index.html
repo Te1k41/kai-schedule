@@ -85,67 +85,205 @@
 <body>
   <div class="koi-bg" aria-hidden="true"></div>
 
-  <div class="shell">
-    <div class="layout">
+  <div class="shell" id="shell">
+    <div class="layout" id="hub-layout">
       <div>
-        <p class="eyebrow">Ops</p>
-        <h1>Pick one</h1>
-        <p class="subtitle">Synced across every device you sign into with the same Google account.</p>
+        <p class="eyebrow" id="hero-eyebrow">Home</p>
+        <h1 id="hero-title">What do you need?</h1>
+        <p class="subtitle" id="hero-subtitle">Synced across every device you sign into with the same Google account.</p>
       </div>
       <div class="links">
         <a class="link-row link-row-quick" href="./now.html">
           <span class="link-text">
-            <span class="link-title">Right Now</span>
-            <span class="link-sub">One glance — what you should be doing this minute</span>
+            <span class="link-title" id="link-now-title">What's Next</span>
+            <span class="link-sub" id="link-now-sub">See what you should be doing, right now.</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row link-row-quick" href="./money.html">
           <span class="link-text">
-            <span class="link-title">Quick Log</span>
-            <span class="link-sub">Balance + fast expense/income entry</span>
+            <span class="link-title" id="link-money-title">Log Money</span>
+            <span class="link-sub" id="link-money-sub">Add an expense or income in seconds.</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row" href="./schedule.html">
           <span class="link-text">
-            <span class="link-title">Daily Timetable</span>
-            <span class="link-sub">Live "what should I be doing now" view</span>
+            <span class="link-title" id="link-schedule-title">Daily Timetable</span>
+            <span class="link-sub" id="link-schedule-sub">Live "what should I be doing now" view</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row" href="./roadmap.html">
           <span class="link-text">
-            <span class="link-title">SOC Analyst Roadmap</span>
-            <span class="link-sub">35 tasks, 5 phases, zero to job-ready</span>
+            <span class="link-title" id="link-roadmap-title">Roadmap</span>
+            <span class="link-sub" id="link-roadmap-sub">Your goals, phase by phase.</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row" href="./health.html">
           <span class="link-text">
-            <span class="link-title">Health &amp; Fitness</span>
-            <span class="link-sub">Meal plan, workout, and daily log — Phase 2</span>
+            <span class="link-title" id="link-health-title">Health &amp; Fitness</span>
+            <span class="link-sub" id="link-health-sub">Meal plan, workout, and daily log.</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row" href="./finance.html">
           <span class="link-text">
-            <span class="link-title">Finance</span>
-            <span class="link-sub">Budget, expenses, savings goals, live USD/VND</span>
+            <span class="link-title" id="link-finance-title">Finance</span>
+            <span class="link-sub" id="link-finance-sub">Budget, expenses, savings goals, live USD/VND</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
         <a class="link-row" href="./partner.html">
           <span class="link-text">
-            <span class="link-title">Partner</span>
-            <span class="link-sub">Read-only view of shared savings, subscriptions &amp; schedule</span>
+            <span class="link-title" id="link-partner-title">Partner</span>
+            <span class="link-sub" id="link-partner-sub">Read-only view of shared savings, subscriptions &amp; schedule</span>
           </span>
           <span class="arrow">&rarr;</span>
         </a>
       </div>
     </div>
-    <p class="footer">Hosted on GitHub Pages</p>
+
+    <div id="edit-form" style="display:none;"></div>
+
+    <p class="footer">
+      Hosted on GitHub Pages
+      <span id="account-area" style="margin-left:10px;"></span>
+    </p>
   </div>
+<script type="module">
+import { signIn, watchAuth, loadData, saveData } from "./firebase-init.js";
+import { escapeHtml } from "./app-shell.js";
+
+const HOME_KEY = "home-meta";
+
+const PLACEHOLDER_HOME = {
+  eyebrow: "Home", heroTitle: "What do you need?",
+  heroSubtitle: "Synced across every device you sign into with the same Google account.",
+  links: {
+    now: { title: "What's Next", sub: "See what you should be doing, right now." },
+    money: { title: "Log Money", sub: "Add an expense or income in seconds." },
+    schedule: { title: "Daily Timetable", sub: "Live \"what should I be doing now\" view" },
+    roadmap: { title: "Roadmap", sub: "Your goals, phase by phase." },
+    health: { title: "Health & Fitness", sub: "Meal plan, workout, and daily log." },
+    finance: { title: "Finance", sub: "Budget, expenses, savings goals, live USD/VND" },
+    partner: { title: "Partner", sub: "Read-only view of shared savings, subscriptions & schedule" }
+  }
+};
+
+const LINK_KEYS = ["now", "money", "schedule", "roadmap", "health", "finance", "partner"];
+
+let home = null;
+let editMode = false;
+
+function roadmapRealLink() { return { title: "SOC Analyst Roadmap", sub: "35 tasks, 5 phases, zero to job-ready" }; }
+function healthRealLink() { return { title: "Health & Fitness", sub: "Meal plan, workout, and daily log — Phase 2" }; }
+
+async function loadHome() {
+  const existing = await loadData(HOME_KEY).catch(() => null);
+  if (existing && existing.eyebrow) {
+    home = existing;
+  } else {
+    const [roadmapProgress, roadmapNotes, healthLog] = await Promise.all([
+      loadData("soc-roadmap-progress").catch(() => null),
+      loadData("roadmap-notes").catch(() => null),
+      loadData("health-tracker-log").catch(() => null)
+    ]);
+    const roadmapEngaged = (roadmapProgress && Object.keys(roadmapProgress).length > 0) || (typeof roadmapNotes === "string" && roadmapNotes.trim().length > 0);
+    const healthEngaged = !!(healthLog && Object.keys(healthLog).length > 0);
+    home = JSON.parse(JSON.stringify(PLACEHOLDER_HOME));
+    if (roadmapEngaged) home.links.roadmap = roadmapRealLink();
+    if (healthEngaged) home.links.health = healthRealLink();
+    await saveData(HOME_KEY, home);
+  }
+  applyHome();
+  showAccountArea();
+}
+
+function applyHome() {
+  document.title = home.heroTitle;
+  document.getElementById("hero-eyebrow").textContent = home.eyebrow;
+  document.getElementById("hero-title").textContent = home.heroTitle;
+  document.getElementById("hero-subtitle").textContent = home.heroSubtitle;
+  for (const key of LINK_KEYS) {
+    const link = home.links[key];
+    if (!link) continue;
+    document.getElementById(`link-${key}-title`).textContent = link.title;
+    document.getElementById(`link-${key}-sub`).textContent = link.sub;
+  }
+}
+
+function showAccountArea() {
+  const area = document.getElementById("account-area");
+  area.innerHTML = `<button id="edit-page-btn" type="button" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:inherit; padding:0;">Edit this page</button>`;
+  document.getElementById("edit-page-btn").addEventListener("click", toggleEditMode);
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  renderEditForm();
+}
+
+function fieldRow(id, label, value) {
+  return `<div style="margin-bottom:12px;"><label style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:4px;" for="${id}">${label}</label><input type="text" id="${id}" value="${escapeHtml(value)}" style="width:100%; font-family:var(--font); font-size:15px; color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" /></div>`;
+}
+
+function renderEditForm() {
+  const hubLayout = document.getElementById("hub-layout");
+  const formEl = document.getElementById("edit-form");
+  if (!editMode) {
+    hubLayout.style.display = "";
+    formEl.style.display = "none";
+    formEl.innerHTML = "";
+    return;
+  }
+  hubLayout.style.display = "none";
+  formEl.style.display = "block";
+  const linkLabels = { now: "What's Next", money: "Log Money", schedule: "Daily Timetable", roadmap: "Roadmap", health: "Health & Fitness", finance: "Finance", partner: "Partner" };
+  formEl.innerHTML = `
+    <p class="eyebrow">Edit this page</p>
+    ${fieldRow("edit-eyebrow", "Eyebrow", home.eyebrow)}
+    ${fieldRow("edit-hero-title", "Title", home.heroTitle)}
+    ${fieldRow("edit-hero-subtitle", "Subtitle", home.heroSubtitle)}
+    ${LINK_KEYS.map(key => `
+      <p class="eyebrow" style="margin-top:20px;">${linkLabels[key]} link</p>
+      ${fieldRow(`edit-link-${key}-title`, "Title", home.links[key].title)}
+      ${fieldRow(`edit-link-${key}-sub`, "Description", home.links[key].sub)}
+    `).join("")}
+    <div style="display:flex; gap:14px; margin-top:10px;">
+      <button class="btn" id="save-home-btn" type="button">Save</button>
+      <button type="button" id="cancel-home-btn" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font);">Cancel</button>
+    </div>
+  `;
+  document.getElementById("save-home-btn").addEventListener("click", saveHomeForm);
+  document.getElementById("cancel-home-btn").addEventListener("click", () => { editMode = false; renderEditForm(); });
+}
+
+function saveHomeForm() {
+  home.eyebrow = document.getElementById("edit-eyebrow").value.trim();
+  home.heroTitle = document.getElementById("edit-hero-title").value.trim();
+  home.heroSubtitle = document.getElementById("edit-hero-subtitle").value.trim();
+  for (const key of LINK_KEYS) {
+    home.links[key] = {
+      title: document.getElementById(`edit-link-${key}-title`).value.trim(),
+      sub: document.getElementById(`edit-link-${key}-sub`).value.trim()
+    };
+  }
+  saveData(HOME_KEY, home);
+  applyHome();
+  editMode = false;
+  renderEditForm();
+}
+
+function showSignInLink() {
+  const area = document.getElementById("account-area");
+  area.innerHTML = `<button id="signin-link-btn" type="button" style="background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:var(--font); font-size:inherit; padding:0;">Sign in to customize</button>`;
+  document.getElementById("signin-link-btn").addEventListener("click", () => signIn().catch(() => {}));
+}
+
+watchAuth((user) => { if (user) loadHome(); else showSignInLink(); });
+</script>
 <script src="./pwa-init.js"></script>
 </body>
 </html>
