@@ -1,4 +1,4 @@
-const CACHE = "kai-ops-v5";
+const CACHE = "kai-ops-v6";
 const SHELL = [
   "./index.html", "./schedule.html", "./roadmap.html", "./health.html", "./finance.html", "./offline.html",
   "./now.html", "./money.html",
