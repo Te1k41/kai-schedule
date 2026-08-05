@@ -14,7 +14,7 @@ export const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]
 export const CAT_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.key, c.color]));
 
 export function defaultFinanceData() {
-  return { income: [], expenses: [], budgets: {}, accounts: [] };
+  return { income: [], expenses: [], budgets: {}, budgetPct: {}, monthlyIncome: 0, accounts: [] };
 }
 
 export function defaultGoals() {

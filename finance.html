@@ -75,7 +75,8 @@
   .budget-bar-track { height: 8px; background: var(--paper); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .budget-bar-fill { height: 100%; background: var(--cat-life); transition: width 0.2s ease; }
   .budget-bar-fill.over { background: var(--danger); }
-  .budget-edit { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .budget-edit { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .budget-edit input:disabled { opacity: 0.5; }
   .budget-edit input { width: 110px; font-family: var(--font); font-size: var(--fs-xs); color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 2px; padding: 5px 8px; }
 
   .goal-card { padding: 16px 2px; border-top: 1px solid var(--border); }
@@ -421,6 +422,25 @@ function setBudget(catKey, value) {
   render();
 }
 
+function setBudgetPct(catKey, value) {
+  data.budgetPct[catKey] = Number(value) || 0;
+  saveFinance();
+  showToast(data.budgetPct[catKey] ? `${CAT_LABEL[catKey]} budget set to ${data.budgetPct[catKey]}% of income (${fmtVnd(effectiveBudget(catKey))})` : `${CAT_LABEL[catKey]} back to a flat VND budget`, "info");
+  render();
+}
+
+function setMonthlyIncome(value) {
+  data.monthlyIncome = parseAmount(value);
+  saveFinance();
+  showToast(`Monthly income set to ${fmtVnd(data.monthlyIncome)}`, "info");
+  render();
+}
+
+function effectiveBudget(catKey) {
+  const pct = data.budgetPct[catKey] || 0;
+  return pct > 0 ? Math.round(data.monthlyIncome * pct / 100) : (data.budgets[catKey] || 0);
+}
+
 function addGoal(app) {
   const name = app.querySelector("#goal-name").value.trim();
   let target = parseAmount(app.querySelector("#goal-target").value);
@@ -573,19 +593,22 @@ function render() {
 
   const budgetHtml = CATEGORIES.map(c => {
     const spent = categoryMonthTotal(c.key);
-    const budget = data.budgets[c.key] || 0;
+    const budgetPct = data.budgetPct[c.key] || 0;
+    const budget = effectiveBudget(c.key);
     const pct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
     const over = budget > 0 && spent > budget;
     return `
       <div class="budget-row">
         <div class="budget-top">
           <span class="budget-name">${c.label}</span>
-          <span class="budget-amounts ${over ? "over" : ""}">${fmtBoth(spent)} ${budget ? `/ ${fmtBoth(budget)}` : "(no budget set)"}</span>
+          <span class="budget-amounts ${over ? "over" : ""}">${fmtBoth(spent)} ${budget ? `/ ${fmtBoth(budget)}${budgetPct ? ` (${budgetPct}% of income)` : ""}` : "(no budget set)"}</span>
         </div>
         <div class="budget-bar-track"><div class="budget-bar-fill ${over ? "over" : ""}" style="width:${pct}%; background:${over ? "var(--danger)" : c.color};"></div></div>
         <div class="budget-edit">
           <label style="font-size:var(--fs-2xs); color:var(--ink-soft);">Monthly budget</label>
-          <input type="text" inputmode="numeric" data-budget-cat="${c.key}" value="${budget || ""}" placeholder="0" />
+          <input type="text" inputmode="numeric" data-budget-cat="${c.key}" value="${data.budgets[c.key] || ""}" placeholder="0" ${budgetPct ? "disabled" : ""} />
+          <label style="font-size:var(--fs-2xs); color:var(--ink-soft);">or % of income</label>
+          <input type="text" inputmode="numeric" data-budget-pct="${c.key}" value="${budgetPct || ""}" placeholder="0" style="width:60px;" />
         </div>
       </div>
     `;
@@ -690,7 +713,11 @@ function render() {
 
         <section class="card">
           <h2>Budget by category</h2>
-          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month.</p>
+          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month. Set it as a flat VND amount, or as a % of your monthly income below.</p>
+          <div class="log-field" style="max-width:240px; margin-bottom:18px;">
+            <label for="monthly-income" style="font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft);">Monthly income (VND)</label>
+            <input type="text" inputmode="numeric" id="monthly-income" value="${data.monthlyIncome || ""}" placeholder="0" />
+          </div>
           ${budgetHtml}
         </section>
 
@@ -752,11 +779,16 @@ function render() {
   };
   subTotalInput.addEventListener("input", recalcInstallment);
   subMonthsInput.addEventListener("input", recalcInstallment);
-  ["exp-amount", "inc-amount", "acc-start", "goal-target", "goal-saved", "sub-amount", "sub-total"].forEach(id => {
+  ["exp-amount", "inc-amount", "acc-start", "goal-target", "goal-saved", "sub-amount", "sub-total", "monthly-income"].forEach(id => {
     const el = app.querySelector(`#${id}`);
     if (el) attachThousandsInput(el);
   });
   app.querySelectorAll("[data-budget-cat]").forEach(attachThousandsInput);
+  const monthlyIncomeInput = app.querySelector("#monthly-income");
+  if (monthlyIncomeInput) monthlyIncomeInput.addEventListener("change", () => setMonthlyIncome(monthlyIncomeInput.value));
+  app.querySelectorAll("[data-budget-pct]").forEach(input => {
+    input.addEventListener("change", () => setBudgetPct(input.dataset.budgetPct, input.value));
+  });
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
   });
