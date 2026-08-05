@@ -149,7 +149,7 @@
 
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
-import { escapeHtml, initAuthUI, notifySaveFailed } from "./app-shell.js";
+import { escapeHtml, initAuthUI, notifySaveFailed, showToast } from "./app-shell.js";
 import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, defaultGoals, defaultSubscriptions, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance } from "./finance-core.js";
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
@@ -417,6 +417,7 @@ function calendarHtml() {
 function setBudget(catKey, value) {
   data.budgets[catKey] = parseAmount(value);
   saveFinance();
+  showToast(`${CAT_LABEL[catKey]} budget set to ${fmtVnd(data.budgets[catKey])}`, "info");
   render();
 }
 

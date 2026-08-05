@@ -19,7 +19,7 @@ if ("serviceWorker" in navigator) {
               toast.style.cursor = "pointer";
               toast.addEventListener("click", () => {
                 userTriggeredRefresh = true;
-                installing.postMessage("skipWaiting");
+                (reg.waiting || installing).postMessage("skipWaiting");
               }, { once: true });
             });
           }
