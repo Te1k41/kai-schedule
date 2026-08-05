@@ -218,7 +218,8 @@ function cancelImport() {
   render();
 }
 
-// One block per line: "HH:MM-HH:MM category label | optional note".
+// One block per line: "HH:MM-HH:MM category label | optional note | optional detail".
+// Detail may contain literal \n for line breaks (decoded back to real newlines).
 // Replaces every block on the selected day — meant for pasting in a whole
 // revised day at once instead of adding blocks one at a time.
 function parseBlockLines(text) {
@@ -231,8 +232,8 @@ function parseBlockLines(text) {
     if (!m) { errors.push(`Line ${i + 1}: can't parse "${line}"`); return; }
     const [, start, end, cat, rest] = m;
     if (!catKeys.includes(cat)) { errors.push(`Line ${i + 1}: unknown category "${cat}" (use ${catKeys.join("/")})`); return; }
-    const [label, note] = rest.split(" | ").map(s => s.trim());
-    blocks.push({ id: uid(), start, end, cat, label, note: note || "", detail: "" });
+    const [label, note, detailRaw] = rest.split(" | ").map(s => s.trim());
+    blocks.push({ id: uid(), start, end, cat, label, note: note || "", detail: detailRaw ? detailRaw.replace(/\\n/g, "\n") : "" });
   });
   return { blocks, errors };
 }
@@ -364,7 +365,7 @@ function render() {
     rightHtml += `
       <div class="block-form">
         <p class="eyebrow" style="margin-top:20px;">Paste blocks for ${DAY_FULL[selectedDay]}</p>
-        <p class="subtitle" style="margin-bottom:10px;">One block per line: <code>HH:MM-HH:MM category label</code>, optional <code> | note</code> at the end. Categories: ${Object.keys(CAT_TAGS).join(", ")}. This replaces every block on ${DAY_FULL[selectedDay]}.</p>
+        <p class="subtitle" style="margin-bottom:10px;">One block per line: <code>HH:MM-HH:MM category label | note | detail</code> (note and detail both optional, <code>\n</code> in detail becomes a line break). Categories: ${Object.keys(CAT_TAGS).join(", ")}. This replaces every block on ${DAY_FULL[selectedDay]}.</p>
         <textarea id="import-text" rows="10" style="width:100%; font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" placeholder="06:25-06:40 life Wake + intention"></textarea>
         <div class="log-save-row">
           <button class="btn" id="import-blocks-save-btn" type="button">Replace ${DAY_FULL[selectedDay]}'s blocks</button>
