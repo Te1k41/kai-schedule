@@ -218,32 +218,49 @@ function cancelImport() {
   render();
 }
 
-// One block per line: "HH:MM-HH:MM category label | optional note | optional detail".
-// Detail may contain literal \n for line breaks (decoded back to real newlines).
-// Replaces every block on the selected day — meant for pasting in a whole
-// revised day at once instead of adding blocks one at a time.
-function parseBlockLines(text) {
-  const re = /^(\d{2}:\d{2})-(\d{2}:\d{2})\s+(\w+)\s+(.+)$/;
+// Validates and normalizes one day's array of blocks from parsed JSON.
+// Throws with a plain-language message on the first problem found.
+function normalizeImportedBlocks(arr, dayLabel) {
+  if (!Array.isArray(arr)) throw new Error(`${dayLabel}: expected an array of blocks`);
   const catKeys = Object.keys(CAT_TAGS);
-  const blocks = [];
-  const errors = [];
-  text.split("\n").map(l => l.trim()).filter(Boolean).forEach((line, i) => {
-    const m = line.match(re);
-    if (!m) { errors.push(`Line ${i + 1}: can't parse "${line}"`); return; }
-    const [, start, end, cat, rest] = m;
-    if (!catKeys.includes(cat)) { errors.push(`Line ${i + 1}: unknown category "${cat}" (use ${catKeys.join("/")})`); return; }
-    const [label, note, detailRaw] = rest.split(" | ").map(s => s.trim());
-    blocks.push({ id: uid(), start, end, cat, label, note: note || "", detail: detailRaw ? detailRaw.replace(/\\n/g, "\n") : "" });
-  });
-  return { blocks, errors };
+  return arr.map((b, i) => {
+    if (!b || typeof b !== "object") throw new Error(`${dayLabel} block ${i + 1}: not an object`);
+    if (!/^\d{2}:\d{2}$/.test(b.start || "")) throw new Error(`${dayLabel} block ${i + 1}: bad or missing "start" (need HH:MM)`);
+    if (!/^\d{2}:\d{2}$/.test(b.end || "")) throw new Error(`${dayLabel} block ${i + 1}: bad or missing "end" (need HH:MM)`);
+    if (!catKeys.includes(b.cat)) throw new Error(`${dayLabel} block ${i + 1}: unknown category "${b.cat}" (use ${catKeys.join("/")})`);
+    if (!b.label) throw new Error(`${dayLabel} block ${i + 1}: missing "label"`);
+    return { id: b.id || uid(), start: b.start, end: b.end, cat: b.cat, label: b.label, note: b.note || "", detail: b.detail || "" };
+  }).sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
 }
 
-function importBlocksForm(app) {
-  const { blocks, errors } = parseBlockLines(app.querySelector("#import-text").value);
-  if (errors.length) { notifySaveFailed(errors[0] + (errors.length > 1 ? ` (+${errors.length - 1} more)` : "")); return; }
-  if (!blocks.length) { notifySaveFailed("Paste at least one line."); return; }
-  blocks.sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
-  weekBlocks[selectedDay] = blocks;
+// Accepts either a single day's block array (replaces just the selected day)
+// or a whole-week object keyed by day abbreviation (replaces every day it
+// includes) — so a full week can be imported in one paste/file instead of
+// switching day tabs one at a time.
+function importJsonForm(app) {
+  const raw = app.querySelector("#import-text").value.trim();
+  if (!raw) { notifySaveFailed("Paste JSON or choose a file first."); return; }
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    notifySaveFailed(`Invalid JSON: ${e.message}`);
+    return;
+  }
+  try {
+    if (Array.isArray(data)) {
+      weekBlocks[selectedDay] = normalizeImportedBlocks(data, DAY_FULL[selectedDay]);
+    } else if (data && typeof data === "object") {
+      const days = DAYS.filter(d => d in data);
+      if (!days.length) throw new Error(`No day keys found (expected one of ${DAYS.join("/")})`);
+      days.forEach(d => { weekBlocks[d] = normalizeImportedBlocks(data[d], DAY_FULL[d]); });
+    } else {
+      throw new Error("Expected an array of blocks, or an object keyed by day (Mon, Tue, ...)");
+    }
+  } catch (e) {
+    notifySaveFailed(e.message);
+    return;
+  }
   editingImport = false;
   saveSchedule();
   render();
@@ -364,11 +381,12 @@ function render() {
   if (editMode && editingImport) {
     rightHtml += `
       <div class="block-form">
-        <p class="eyebrow" style="margin-top:20px;">Paste blocks for ${DAY_FULL[selectedDay]}</p>
-        <p class="subtitle" style="margin-bottom:10px;">One block per line: <code>HH:MM-HH:MM category label | note | detail</code> (note and detail both optional, <code>\n</code> in detail becomes a line break). Categories: ${Object.keys(CAT_TAGS).join(", ")}. This replaces every block on ${DAY_FULL[selectedDay]}.</p>
-        <textarea id="import-text" rows="10" style="width:100%; font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" placeholder="06:25-06:40 life Wake + intention"></textarea>
+        <p class="eyebrow" style="margin-top:20px;">Import JSON</p>
+        <p class="subtitle" style="margin-bottom:10px;">Either a single day — an array of <code>{start, end, cat, label, note, detail}</code> objects, replacing just ${DAY_FULL[selectedDay]} — or a whole week — an object keyed by day (<code>${DAYS.join(", ")}</code>), replacing every day it includes. <code>cat</code> must be one of: ${Object.keys(CAT_TAGS).join(", ")}. <code>note</code>/<code>detail</code> are optional.</p>
+        <div class="log-field wide"><label for="import-file">Choose a .json file (optional)</label><input type="file" id="import-file" accept="application/json,.json" /></div>
+        <textarea id="import-text" rows="10" style="width:100%; font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" placeholder='[{"start":"06:25","end":"06:40","cat":"life","label":"Wake + intention"}, ...]'></textarea>
         <div class="log-save-row">
-          <button class="btn" id="import-blocks-save-btn" type="button">Replace ${DAY_FULL[selectedDay]}'s blocks</button>
+          <button class="btn" id="import-blocks-save-btn" type="button">Import</button>
           <button class="btn btn-ghost btn-small" id="cancel-import-btn" type="button">Cancel</button>
         </div>
       </div>
@@ -419,7 +437,7 @@ function render() {
     <div class="edit-toggle-row">
       <button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit schedule"}</button>
       ${editMode && !editingMeta ? `<button class="btn btn-ghost btn-small" id="edit-meta-btn" type="button">Edit title/subtitle</button>` : ""}
-      ${editMode && !editingImport ? `<button class="btn btn-ghost btn-small" id="import-blocks-btn" type="button">Paste blocks</button>` : ""}
+      ${editMode && !editingImport ? `<button class="btn btn-ghost btn-small" id="import-blocks-btn" type="button">Import JSON</button>` : ""}
     </div>
     ${editMode ? `<div class="edit-fab"><button class="btn btn-small" id="done-editing-fab" type="button">Done editing</button></div>` : ""}
     <div class="layout">
@@ -463,9 +481,17 @@ function render() {
   const importBtn = app.querySelector("#import-blocks-btn");
   if (importBtn) importBtn.addEventListener("click", startImport);
   const importSaveBtn = app.querySelector("#import-blocks-save-btn");
-  if (importSaveBtn) importSaveBtn.addEventListener("click", () => importBlocksForm(app));
+  if (importSaveBtn) importSaveBtn.addEventListener("click", () => importJsonForm(app));
   const cancelImportBtn = app.querySelector("#cancel-import-btn");
   if (cancelImportBtn) cancelImportBtn.addEventListener("click", cancelImport);
+  const importFileInput = app.querySelector("#import-file");
+  if (importFileInput) importFileInput.addEventListener("change", () => {
+    const file = importFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { app.querySelector("#import-text").value = reader.result; };
+    reader.readAsText(file);
+  });
   const doneFab = app.querySelector("#done-editing-fab");
   if (doneFab) doneFab.addEventListener("click", toggleEditMode);
 }
