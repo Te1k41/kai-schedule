@@ -422,7 +422,12 @@ function setBudget(catKey, value) {
 
 function addGoal(app) {
   const name = app.querySelector("#goal-name").value.trim();
-  const target = parseAmount(app.querySelector("#goal-target").value);
+  let target = parseAmount(app.querySelector("#goal-target").value);
+  const targetUsd = Number(app.querySelector("#goal-target-usd").value) || 0;
+  if (!target && targetUsd) {
+    if (!rate.usdToVnd) { notifySaveFailed("USD rate not loaded yet — enter the VND target directly."); return; }
+    target = Math.round(targetUsd * effectiveRate());
+  }
   const saved = parseAmount(app.querySelector("#goal-saved").value);
   const link = app.querySelector("#goal-link").value.trim();
   if (!name || !target) { notifySaveFailed("Goal needs a name and a target amount."); return; }
