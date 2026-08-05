@@ -151,13 +151,14 @@
 <script type="module">
 import { loadData, saveData } from "./firebase-init.js";
 import { escapeHtml, initAuthUI, notifySaveFailed, showToast } from "./app-shell.js";
-import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, defaultGoals, defaultSubscriptions, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance } from "./finance-core.js";
+import { STORAGE_KEY, CATEGORIES, CAT_LABEL, CAT_COLOR, defaultFinanceData, defaultGoals, defaultSubscriptions, uid, fmtVnd, parseAmount, attachThousandsInput, accountBalance, accountName, totalBalance, totalMonthlyIncome } from "./finance-core.js";
 
 const AVG_DAILY_FOOD_COST_VND = 72000;
 const EGG_COST_VND = 3200;
 const SUBSCRIPTION_MONTHLY_USD = 14;
 const SAVINGS_KEY = "savings-goals";
 const SUBS_KEY = "subscriptions-list";
+const PCT_PRESETS = [5, 10, 15, 20, 25, 30];
 
 let data = defaultFinanceData();
 let goals = defaultGoals();
@@ -183,6 +184,10 @@ async function loadFinance() {
     loadData(SUBS_KEY).catch(() => null)
   ]);
   data = financeValue ? { ...defaultFinanceData(), ...financeValue } : defaultFinanceData();
+  if (!data.incomeSources.length && data.monthlyIncome) {
+    data.incomeSources = [{ id: uid(), name: "Income", amount: data.monthlyIncome }];
+  }
+  delete data.monthlyIncome;
 
   // One-time migration: goals/subscriptions used to live inside finance-data.
   if (goalsValue) {
@@ -213,7 +218,7 @@ async function applyRecurringSubscriptions() {
   for (const sub of subscriptions) {
     if (sub.endMonth && mk > sub.endMonth) continue;
     if (sub.lastLoggedMonth !== mk) {
-      data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account });
+      data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account, subId: sub.id });
       sub.lastLoggedMonth = mk;
       subsChanged = true;
       expensesChanged = true;
@@ -316,7 +321,16 @@ function setEntryCategory(list, id, category) {
   const entry = arr.find(e => e.id === id);
   if (!entry) return;
   entry.category = category;
-  if (list === "subscriptions") saveSubscriptions(); else saveFinance();
+  if (list === "subscriptions") {
+    saveSubscriptions();
+    const linked = data.expenses.filter(e => e.subId === id || e.note === `${entry.name} (auto)`);
+    if (linked.length) {
+      linked.forEach(e => e.category = category);
+      saveFinance();
+    }
+  } else {
+    saveFinance();
+  }
   render();
 }
 
@@ -423,22 +437,48 @@ function setBudget(catKey, value) {
 }
 
 function setBudgetPct(catKey, value) {
-  data.budgetPct[catKey] = Number(value) || 0;
+  const oldVal = data.budgetPct[catKey] || 0;
+  const newVal = Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+  const otherKeys = CATEGORIES.map(c => c.key).filter(k => k !== catKey);
+  const oldOthersSum = otherKeys.reduce((s, k) => s + (data.budgetPct[k] || 0), 0);
+  const remaining = 100 - newVal;
+
+  if (remaining <= 0) {
+    otherKeys.forEach(k => data.budgetPct[k] = 0);
+  } else if (oldOthersSum <= 0) {
+    if (newVal > 0 || oldVal > 0) {
+      const even = Math.floor(remaining / otherKeys.length);
+      otherKeys.forEach(k => data.budgetPct[k] = even);
+      data.budgetPct[otherKeys[0]] += remaining - even * otherKeys.length;
+    }
+  } else {
+    const factor = remaining / oldOthersSum;
+    otherKeys.forEach(k => data.budgetPct[k] = Math.max(0, Math.round((data.budgetPct[k] || 0) * factor)));
+    const drift = remaining - otherKeys.reduce((s, k) => s + data.budgetPct[k], 0);
+    if (drift !== 0) {
+      const biggest = otherKeys.reduce((a, b) => data.budgetPct[a] >= data.budgetPct[b] ? a : b);
+      data.budgetPct[biggest] = Math.max(0, data.budgetPct[biggest] + drift);
+    }
+  }
+  data.budgetPct[catKey] = newVal;
+
   saveFinance();
-  showToast(data.budgetPct[catKey] ? `${CAT_LABEL[catKey]} budget set to ${data.budgetPct[catKey]}% of income (${fmtVnd(effectiveBudget(catKey))})` : `${CAT_LABEL[catKey]} back to a flat VND budget`, "info");
+  showToast(newVal ? `${CAT_LABEL[catKey]} set to ${newVal}% of income (${fmtVnd(effectiveBudget(catKey))}) — others rebalanced` : `${CAT_LABEL[catKey]} back to a flat VND budget`, "info");
   render();
 }
 
-function setMonthlyIncome(value) {
-  data.monthlyIncome = parseAmount(value);
+function addIncomeSource(app) {
+  const name = app.querySelector("#inc-src-name").value.trim();
+  const amount = parseAmount(app.querySelector("#inc-src-amount").value);
+  if (!name || !amount) { notifySaveFailed("Income source needs a name and an amount."); return; }
+  data.incomeSources.push({ id: uid(), name, amount });
   saveFinance();
-  showToast(`Monthly income set to ${fmtVnd(data.monthlyIncome)}`, "info");
   render();
 }
 
 function effectiveBudget(catKey) {
   const pct = data.budgetPct[catKey] || 0;
-  return pct > 0 ? Math.round(data.monthlyIncome * pct / 100) : (data.budgets[catKey] || 0);
+  return pct > 0 ? Math.round(totalMonthlyIncome(data) * pct / 100) : (data.budgets[catKey] || 0);
 }
 
 function addGoal(app) {
@@ -591,6 +631,18 @@ function render() {
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
 
+  const incomeSourcesHtml = data.incomeSources.length ? data.incomeSources.map(s => `
+    <div class="budget-row">
+      <div class="budget-top">
+        <span class="budget-name">${escapeHtml(s.name)}</span>
+        <span class="budget-amounts">${fmtBoth(s.amount)}</span>
+      </div>
+      <button class="row-del" data-del="incomeSources" data-id="${s.id}" type="button">&times;</button>
+    </div>
+  `).join("") : `<p class="rows-empty">No income sources yet — add one below (salary, freelance, etc).</p>`;
+
+  const allocatedPct = CATEGORIES.reduce((s, c) => s + (data.budgetPct[c.key] || 0), 0);
+
   const budgetHtml = CATEGORIES.map(c => {
     const spent = categoryMonthTotal(c.key);
     const budgetPct = data.budgetPct[c.key] || 0;
@@ -609,6 +661,9 @@ function render() {
           <input type="text" inputmode="numeric" data-budget-cat="${c.key}" value="${data.budgets[c.key] || ""}" placeholder="0" ${budgetPct ? "disabled" : ""} />
           <label style="font-size:var(--fs-2xs); color:var(--ink-soft);">or % of income</label>
           <input type="text" inputmode="numeric" data-budget-pct="${c.key}" value="${budgetPct || ""}" placeholder="0" style="width:60px;" />
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            ${PCT_PRESETS.map(n => `<button class="btn btn-ghost btn-small" data-budget-pct-preset="${c.key}" data-value="${n}" type="button">${n}%</button>`).join("")}
+          </div>
         </div>
       </div>
     `;
@@ -712,12 +767,21 @@ function render() {
         </section>
 
         <section class="card">
-          <h2>Budget by category</h2>
-          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month. Set it as a flat VND amount, or as a % of your monthly income below.</p>
-          <div class="log-field" style="max-width:240px; margin-bottom:18px;">
-            <label for="monthly-income" style="font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft);">Monthly income (VND)</label>
-            <input type="text" inputmode="numeric" id="monthly-income" value="${data.monthlyIncome || ""}" placeholder="0" />
+          <h2>Monthly income</h2>
+          <p class="subtitle" style="margin-bottom:12px;">Every source that counts toward your monthly income — salary, freelance, etc. Used for % of income budgets below.</p>
+          ${incomeSourcesHtml}
+          <p class="budget-amounts" style="margin:10px 0 0; font-weight:700;">Total: ${fmtBoth(totalMonthlyIncome(data))}</p>
+          <p class="eyebrow" style="margin:20px 0 10px;">Add an income source</p>
+          <div class="log-form">
+            <div class="log-field"><label for="inc-src-name">Name</label><input type="text" id="inc-src-name" placeholder="e.g. Salary, Freelance" /></div>
+            <div class="log-field"><label for="inc-src-amount">Amount (VND/mo)</label><input type="text" inputmode="numeric" id="inc-src-amount" placeholder="0" /></div>
           </div>
+          <div class="log-save-row"><button class="btn" id="add-income-source-btn" type="button">Add income source</button></div>
+        </section>
+
+        <section class="card">
+          <h2>Budget by category</h2>
+          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month. Set it as a flat VND amount, or as a % of your monthly income (allocated: ${allocatedPct}%, auto-balances to stay at 100 once you start).</p>
           ${budgetHtml}
         </section>
 
@@ -779,15 +843,17 @@ function render() {
   };
   subTotalInput.addEventListener("input", recalcInstallment);
   subMonthsInput.addEventListener("input", recalcInstallment);
-  ["exp-amount", "inc-amount", "acc-start", "goal-target", "goal-saved", "sub-amount", "sub-total", "monthly-income"].forEach(id => {
+  ["exp-amount", "inc-amount", "acc-start", "goal-target", "goal-saved", "sub-amount", "sub-total", "inc-src-amount"].forEach(id => {
     const el = app.querySelector(`#${id}`);
     if (el) attachThousandsInput(el);
   });
   app.querySelectorAll("[data-budget-cat]").forEach(attachThousandsInput);
-  const monthlyIncomeInput = app.querySelector("#monthly-income");
-  if (monthlyIncomeInput) monthlyIncomeInput.addEventListener("change", () => setMonthlyIncome(monthlyIncomeInput.value));
+  app.querySelector("#add-income-source-btn").addEventListener("click", () => addIncomeSource(app));
   app.querySelectorAll("[data-budget-pct]").forEach(input => {
     input.addEventListener("change", () => setBudgetPct(input.dataset.budgetPct, input.value));
+  });
+  app.querySelectorAll("[data-budget-pct-preset]").forEach(btn => {
+    btn.addEventListener("click", () => setBudgetPct(btn.dataset.budgetPctPreset, btn.dataset.value));
   });
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));

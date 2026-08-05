@@ -14,7 +14,7 @@ export const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]
 export const CAT_COLOR = Object.fromEntries(CATEGORIES.map(c => [c.key, c.color]));
 
 export function defaultFinanceData() {
-  return { income: [], expenses: [], budgets: {}, budgetPct: {}, monthlyIncome: 0, accounts: [] };
+  return { income: [], expenses: [], budgets: {}, budgetPct: {}, incomeSources: [], accounts: [] };
 }
 
 export function defaultGoals() {
@@ -65,4 +65,8 @@ export function accountName(data, accId) {
 
 export function totalBalance(data) {
   return data.accounts.reduce((s, a) => s + accountBalance(data, a.id), 0);
+}
+
+export function totalMonthlyIncome(data) {
+  return data.incomeSources.reduce((s, x) => s + Number(x.amount || 0), 0);
 }
