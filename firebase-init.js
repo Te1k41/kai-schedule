@@ -86,10 +86,31 @@ export async function loadPartnerData(otherUid, key) {
   }
 }
 
+// Finds the two shapes Firestore's setDoc() throws on: undefined values, and
+// arrays that directly contain another array (nested arrays aren't
+// supported — wrap the inner array in an object instead). Returns a list of
+// human-readable paths, empty if the value is safe to save.
+function findDataProblems(value, path = "value") {
+  const problems = [];
+  if (value === undefined) {
+    problems.push(`${path} is undefined`);
+  } else if (Array.isArray(value)) {
+    value.forEach((item, i) => {
+      if (Array.isArray(item)) problems.push(`${path}[${i}] is a nested array`);
+      else problems.push(...findDataProblems(item, `${path}[${i}]`));
+    });
+  } else if (value && typeof value === "object") {
+    for (const k of Object.keys(value)) problems.push(...findDataProblems(value[k], `${path}.${k}`));
+  }
+  return problems;
+}
+
 // Saves a JSON-serializable value under `key` for the signed-in user.
 export async function saveData(key, value) {
   const user = auth.currentUser;
   if (!user) return false;
+  const problems = findDataProblems(value);
+  if (problems.length) console.error(`saveData(${key}) has data Firestore will reject:`, problems);
   try {
     const ref = doc(db, "users", user.uid, "data", key);
     await setDoc(ref, { value, updatedAt: Date.now() });
