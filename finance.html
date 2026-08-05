@@ -61,6 +61,10 @@
   .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
   .row-del:hover { color: var(--danger); }
   .rows-empty { font-size: var(--fs-sm); color: var(--ink-soft); font-style: italic; margin: 0 0 12px; }
+  .rows-table tr.is-done { opacity: 0.45; }
+  .row-done { background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--ink-soft); cursor: pointer; font-size: 13px; line-height: 1; padding: 3px 7px; }
+  .row-done.on { color: var(--cat-life); border-color: var(--cat-life); }
+  .goal-card.is-done { opacity: 0.45; }
 
   .budget-row { padding: 12px 2px; border-top: 1px solid var(--border); }
   .budget-row:first-child { border-top: none; }
@@ -292,6 +296,15 @@ function removeEntry(list, id) {
     data[list] = data[list].filter(e => e.id !== id);
     saveFinance();
   }
+  render();
+}
+
+function toggleDone(list, id) {
+  const arr = list === "goals" ? goals : data[list];
+  const entry = arr.find(e => e.id === id);
+  if (!entry) return;
+  entry.done = !entry.done;
+  if (list === "goals") saveGoals(); else saveFinance();
   render();
 }
 
@@ -539,12 +552,12 @@ function render() {
     </table></div>
   ` : `<p class="rows-empty">No income logged yet.</p>`;
 
-  const expenseRows = [...data.expenses].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
+  const expenseRows = [...data.expenses].sort((a, b) => (!!a.done - !!b.done) || b.date.localeCompare(a.date)).slice(0, 20);
   const expenseHtml = expenseRows.length ? `
     <div class="table-scroll"><table class="rows-table">
-      <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat class="${e.done ? "is-done" : ""}" style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td>${accountName(data, e.account)}</td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-done ${e.done ? "on" : ""}" data-done="expenses" data-id="${e.id}" type="button">&check;</button></td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
@@ -569,10 +582,10 @@ function render() {
     `;
   }).join("");
 
-  const goalsHtml = goals.length ? goals.map(g => {
+  const goalsHtml = goals.length ? [...goals].sort((a, b) => !!a.done - !!b.done).map(g => {
     const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
     return `
-      <div class="goal-card">
+      <div class="goal-card ${g.done ? "is-done" : ""}">
         <div class="goal-top">
           <span class="goal-name">${escapeHtml(g.name)}${g.link ? ` <a href="${escapeHtml(g.link)}" target="_blank" rel="noopener" title="${escapeHtml(g.link)}">&#8599;</a>` : ""}</span>
           <span class="goal-pct">${pct.toFixed(0)}%</span>
@@ -582,6 +595,7 @@ function render() {
         <div style="display:flex; gap:8px;">
           <button class="btn btn-ghost btn-small" data-goal-bump="${g.id}" data-delta="100000" type="button">+100k VND</button>
           <button class="btn btn-ghost btn-small" data-goal-bump="${g.id}" data-delta="-100000" type="button">-100k VND</button>
+          <button class="row-done ${g.done ? "on" : ""}" data-done="goals" data-id="${g.id}" type="button">&check; Done</button>
           <button class="row-del" data-del="goals" data-id="${g.id}" type="button" style="margin-left:auto;">&times;</button>
         </div>
       </div>
@@ -736,6 +750,9 @@ function render() {
   app.querySelectorAll("[data-budget-cat]").forEach(attachThousandsInput);
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
+  });
+  app.querySelectorAll("[data-done]").forEach(btn => {
+    btn.addEventListener("click", () => toggleDone(btn.dataset.done, btn.dataset.id));
   });
   app.querySelectorAll("[data-goal-bump]").forEach(btn => {
     btn.addEventListener("click", () => bumpGoal(btn.dataset.goalBump, Number(btn.dataset.delta)));
