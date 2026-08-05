@@ -62,8 +62,10 @@
   .row-del:hover { color: var(--danger); }
   .rows-empty { font-size: var(--fs-sm); color: var(--ink-soft); font-style: italic; margin: 0 0 12px; }
   .rows-table tr.is-done { opacity: 0.45; }
-  .row-done { background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--ink-soft); cursor: pointer; font-size: 13px; line-height: 1; padding: 3px 7px; }
+  .row-done { background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--ink-soft); cursor: pointer; font-size: 13px; line-height: 1; padding: 3px 7px; transition: color 0.15s ease, border-color 0.15s ease; }
+  .row-done:hover { color: var(--vermillion); border-color: var(--vermillion); }
   .row-done.on { color: var(--cat-life); border-color: var(--cat-life); }
+  .row-done.on:hover { color: var(--danger); border-color: var(--danger); }
   .goal-card.is-done, .budget-row.is-done { opacity: 0.45; }
 
   .budget-row { padding: 12px 2px; border-top: 1px solid var(--border); }
