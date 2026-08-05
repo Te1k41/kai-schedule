@@ -744,7 +744,7 @@ function render() {
     const total = parseAmount(subTotalInput.value);
     const months = Number(subMonthsInput.value);
     if (total > 0 && months > 0) {
-      subAmountInput.value = Math.round(total / months).toLocaleString();
+      subAmountInput.value = Math.round(total / months).toLocaleString("en-US");
       const d = new Date();
       d.setMonth(d.getMonth() + months - 1);
       subEndInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -802,7 +802,7 @@ function render() {
   if (goalUsdInput && goalVndInput && rate.usdToVnd) {
     goalUsdInput.addEventListener("input", () => {
       const usd = Number(goalUsdInput.value) || 0;
-      goalVndInput.value = usd ? Math.round(usd * effectiveRate()).toLocaleString() : "";
+      goalVndInput.value = usd ? Math.round(usd * effectiveRate()).toLocaleString("en-US") : "";
     });
   }
 

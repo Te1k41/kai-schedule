@@ -26,7 +26,7 @@ export function defaultSubscriptions() {
 }
 
 export function fmtVnd(n) {
-  return Math.round(n).toLocaleString() + " VND";
+  return Math.round(n).toLocaleString("en-US") + " VND";
 }
 
 // Parses a possibly comma-formatted amount input back into a plain number.
@@ -36,11 +36,11 @@ export function parseAmount(str) {
 
 // Wires live thousands-separator formatting onto a text input, cursor-safe.
 export function attachThousandsInput(el) {
-  if (el.value) el.value = parseAmount(el.value) ? parseAmount(el.value).toLocaleString() : el.value;
+  if (el.value) el.value = parseAmount(el.value) ? parseAmount(el.value).toLocaleString("en-US") : el.value;
   el.addEventListener("input", () => {
     const digitsBefore = el.value.slice(0, el.selectionStart).replace(/\D/g, "").length;
     const raw = el.value.replace(/\D/g, "");
-    el.value = raw ? Number(raw).toLocaleString() : "";
+    el.value = raw ? Number(raw).toLocaleString("en-US") : "";
     let pos = 0, seen = 0;
     while (pos < el.value.length && seen < digitsBefore) {
       if (/\d/.test(el.value[pos])) seen++;
