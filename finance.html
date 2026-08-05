@@ -436,35 +436,21 @@ function setBudget(catKey, value) {
   render();
 }
 
+function allocatedPct(excludeKey) {
+  return CATEGORIES.reduce((s, c) => c.key === excludeKey ? s : s + (data.budgetPct[c.key] || 0), 0);
+}
+
 function setBudgetPct(catKey, value) {
-  const oldVal = data.budgetPct[catKey] || 0;
   const newVal = Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
-  const otherKeys = CATEGORIES.map(c => c.key).filter(k => k !== catKey);
-  const oldOthersSum = otherKeys.reduce((s, k) => s + (data.budgetPct[k] || 0), 0);
-  const remaining = 100 - newVal;
-
-  if (remaining <= 0) {
-    otherKeys.forEach(k => data.budgetPct[k] = 0);
-  } else if (oldOthersSum <= 0) {
-    if (newVal > 0 || oldVal > 0) {
-      const even = Math.floor(remaining / otherKeys.length);
-      otherKeys.forEach(k => data.budgetPct[k] = even);
-      data.budgetPct[otherKeys[0]] += remaining - even * otherKeys.length;
-    }
-  } else {
-    const factor = remaining / oldOthersSum;
-    otherKeys.forEach(k => data.budgetPct[k] = Math.max(0, Math.round((data.budgetPct[k] || 0) * factor)));
-    const drift = remaining - otherKeys.reduce((s, k) => s + data.budgetPct[k], 0);
-    if (drift !== 0) {
-      const biggest = otherKeys.reduce((a, b) => data.budgetPct[a] >= data.budgetPct[b] ? a : b);
-      data.budgetPct[biggest] = Math.max(0, data.budgetPct[biggest] + drift);
-    }
-  }
   data.budgetPct[catKey] = newVal;
-
   saveFinance();
-  showToast(newVal ? `${CAT_LABEL[catKey]} set to ${newVal}% of income (${fmtVnd(effectiveBudget(catKey))}) — others rebalanced` : `${CAT_LABEL[catKey]} back to a flat VND budget`, "info");
+  showToast(newVal ? `${CAT_LABEL[catKey]} set to ${newVal}% of income (${fmtVnd(effectiveBudget(catKey))})` : `${CAT_LABEL[catKey]} back to a flat VND budget`, "info");
   render();
+}
+
+function fillRemainingPct(catKey) {
+  const remaining = Math.max(0, 100 - allocatedPct(catKey));
+  setBudgetPct(catKey, remaining);
 }
 
 function addIncomeSource(app) {
@@ -641,7 +627,7 @@ function render() {
     </div>
   `).join("") : `<p class="rows-empty">No income sources yet — add one below (salary, freelance, etc).</p>`;
 
-  const allocatedPct = CATEGORIES.reduce((s, c) => s + (data.budgetPct[c.key] || 0), 0);
+  const totalAllocatedPct = allocatedPct();
 
   const budgetHtml = CATEGORIES.map(c => {
     const spent = categoryMonthTotal(c.key);
@@ -663,6 +649,7 @@ function render() {
           <input type="text" inputmode="numeric" data-budget-pct="${c.key}" value="${budgetPct || ""}" placeholder="0" style="width:60px;" />
           <div style="display:flex; gap:4px; flex-wrap:wrap;">
             ${PCT_PRESETS.map(n => `<button class="btn btn-ghost btn-small" data-budget-pct-preset="${c.key}" data-value="${n}" type="button">${n}%</button>`).join("")}
+            <button class="btn btn-ghost btn-small" data-budget-pct-fill="${c.key}" type="button">Fill remaining (${Math.max(0, 100 - allocatedPct(c.key))}%)</button>
           </div>
         </div>
       </div>
@@ -781,7 +768,11 @@ function render() {
 
         <section class="card">
           <h2>Budget by category</h2>
-          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month. Set it as a flat VND amount, or as a % of your monthly income (allocated: ${allocatedPct}%, auto-balances to stay at 100 once you start).</p>
+          <p class="subtitle" style="margin-bottom:12px;">Set a monthly ceiling per category, see what's actually spent this month. Set it as a flat VND amount, or as a % of your monthly income.</p>
+          <p class="budget-amounts" style="margin:0 0 14px; font-size:var(--fs-sm);">
+            <strong style="color:${totalAllocatedPct > 100 ? "var(--danger)" : "var(--ink)"};">${totalAllocatedPct}% allocated</strong>
+            &middot; ${totalAllocatedPct > 100 ? `${totalAllocatedPct - 100}% over 100` : `${100 - totalAllocatedPct}% remaining`}
+          </p>
           ${budgetHtml}
         </section>
 
@@ -854,6 +845,9 @@ function render() {
   });
   app.querySelectorAll("[data-budget-pct-preset]").forEach(btn => {
     btn.addEventListener("click", () => setBudgetPct(btn.dataset.budgetPctPreset, btn.dataset.value));
+  });
+  app.querySelectorAll("[data-budget-pct-fill]").forEach(btn => {
+    btn.addEventListener("click", () => fillRemainingPct(btn.dataset.budgetPctFill));
   });
   app.querySelectorAll("[data-del]").forEach(btn => {
     btn.addEventListener("click", () => removeEntry(btn.dataset.del, btn.dataset.id));
