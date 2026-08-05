@@ -635,11 +635,12 @@ function render() {
     const budget = effectiveBudget(c.key);
     const pct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
     const over = budget > 0 && spent > budget;
+    const remaining = budget - spent;
     return `
       <div class="budget-row">
         <div class="budget-top">
           <span class="budget-name">${c.label}</span>
-          <span class="budget-amounts ${over ? "over" : ""}">${fmtBoth(spent)} ${budget ? `/ ${fmtBoth(budget)}${budgetPct ? ` (${budgetPct}% of income)` : ""}` : "(no budget set)"}</span>
+          <span class="budget-amounts ${over ? "over" : ""}">${fmtBoth(spent)} ${budget ? `/ ${fmtBoth(budget)}${budgetPct ? ` (${budgetPct}% of income)` : ""} &middot; ${remaining >= 0 ? `${fmtBoth(remaining)} left` : `${fmtBoth(-remaining)} over`}` : "(no budget set)"}</span>
         </div>
         <div class="budget-bar-track"><div class="budget-bar-fill ${over ? "over" : ""}" style="width:${pct}%; background:${over ? "var(--danger)" : c.color};"></div></div>
         <div class="budget-edit">
