@@ -31,20 +31,23 @@ export function weekdayTemplate(day) {
     ? { cat: "fitness", label: "Full-Body A — bodyweight workout", note: FULL_BODY_A_NOTE, detail: FULL_BODY_A_DETAIL }
     : { cat: "fitness", label: "Interval walk", note: INTERVAL_WALK_NOTE, detail: INTERVAL_WALK_DETAIL };
   return [
-    { start: "06:45", end: "07:15", cat: "life", label: "Wake + intention" },
-    { start: "07:15", end: "07:45", cat: "life", ...mealBlock(m.breakfast, "Breakfast") },
-    { start: "07:45", end: "08:00", cat: "life", label: "Commute" },
+    { start: "06:25", end: "06:40", cat: "life", label: "Wake + intention" },
+    { start: "06:40", end: "07:05", cat: "life", ...mealBlock(m.breakfast, "Breakfast") },
+    { start: "07:05", end: "07:15", cat: "life", label: "Buffer — gear up, bike check" },
+    { start: "07:15", end: "08:00", cat: "life", label: "Commute", note: "45 min by motorbike." },
     { start: "08:00", end: "12:00", cat: "work", label: "Work", ...(day === "Mon" ? { note: "Take a 2 min break each hour." } : {}) },
     { start: "12:00", end: "13:00", cat: "life", ...mealBlock(m.lunch, "Lunch"), label: `Lunch + walk: ${m.lunch.dish}` },
     { start: "13:00", end: "17:00", cat: "work", label: "Work" },
     { start: "17:00", end: "17:30", cat: "life", ...snackBlock, note: `${snackBlock.note} · pre-workout` },
-    { start: "17:30", end: "18:30", cat: "life", label: "Commute / out" },
-    { start: "18:30", end: "19:00", ...trainingBlock },
-    { start: "19:00", end: "19:30", cat: "life", ...mealBlock(m.dinner, "Dinner") },
-    { start: "19:30", end: "20:30", cat: "study", label: "Learning — Security+ or hands-on labs", note: LEARNING_NOTE, detail: LEARNING_DETAIL },
-    { start: "20:30", end: "22:30", cat: "life", label: "Free time" },
-    { start: "22:30", end: "23:00", cat: "life", label: "Wind-down — screens off" },
-    { start: "23:00", end: "06:45", cat: "life", label: "Sleep", note: "8 hours. Phone down — tomorrow's you will thank tonight's you." }
+    { start: "17:30", end: "18:15", cat: "life", label: "Commute home", note: "45 min by motorbike." },
+    { start: "18:15", end: "18:25", cat: "life", label: "Buffer — decompress, change" },
+    { start: "18:25", end: "18:55", ...trainingBlock },
+    { start: "18:55", end: "19:15", cat: "life", label: "Shower" },
+    { start: "19:15", end: "19:45", cat: "life", ...mealBlock(m.dinner, "Dinner") },
+    { start: "19:45", end: "20:30", cat: "study", label: "Learning — Security+ or hands-on labs", note: LEARNING_NOTE, detail: LEARNING_DETAIL },
+    { start: "20:30", end: "22:10", cat: "life", label: "Free time" },
+    { start: "22:10", end: "22:30", cat: "life", label: "Wind-down — screens off" },
+    { start: "22:30", end: "06:25", cat: "life", label: "Sleep", note: "8 hours. Phone down — tomorrow's you will thank tonight's you." }
   ];
 }
 
