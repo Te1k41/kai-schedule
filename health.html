@@ -194,6 +194,14 @@ const PLACEHOLDER_META = {
 
 const MEAL_SLOTS = [["breakfast","Breakfast","life"],["lunch","Lunch","life"],["dinner","Dinner","life"],["snack","Snack","life"]];
 
+// Firestore rejects arrays that directly contain other arrays ("nested
+// arrays are not supported"), so warmup/cooldown/prices/shopping items are
+// authored as compact tuples below, then mapped to objects before they ever
+// reach plan data that gets saved.
+const tuple2 = ([name, time]) => ({ name, time });
+const tuple3 = ([name, price, per]) => ({ name, price, per });
+const tuple4 = ([name, qty, unit, total]) => ({ name, qty, unit, total });
+
 // Real content, used only as the one-time seed for an account that's
 // already engaged with this page (see loadLog's grandfathering check).
 const DEFAULT_HEALTH_PLAN = {
@@ -204,11 +212,11 @@ const DEFAULT_HEALTH_PLAN = {
   warmup: [
     ["March in place", "30 sec"], ["Arm circles", "20 sec each way"], ["Hip circles", "20 sec each way"],
     ["5 slow partial squats", "5 reps"], ["Shoulder rolls", "15 sec"]
-  ],
+  ].map(tuple2),
   cooldown: [
     ["Doorway chest stretch", "20 sec"], ["Standing quad stretch", "20 sec each"],
     ["Standing hamstring reach", "20 sec"], ["Cat-cow", "5 slow reps"], ["Child's pose", "30 sec"]
-  ],
+  ].map(tuple2),
   exercises: [
     { name: "Wall Push-up", sets: "2 × 8-12", rest: "60-90s", cue: "Body straight; elbows ~45°; chest near wall", scale: "Easier: stand closer. Harder: feet back / incline." },
     { name: "Assisted Squat", sets: "2 × 8-12", rest: "60-90s", cue: "Knees over toes; weight in heels; chest up", scale: "Easier: more hand support. Harder: free squat, 3s down." },
@@ -224,20 +232,20 @@ const DEFAULT_HEALTH_PLAN = {
       ["Chicken thigh", "0.25 kg", 60000, 15000], ["Lean pork", "0.7 kg", 125000, 87500],
       ["Ground pork", "0.25 kg", 125000, 31250], ["Lean beef", "0.1 kg", 260000, 26000],
       ["Fish (tilapia/basa, cleaned)", "0.6 kg", 78000, 46800], ["White tofu", "6 block", 6000, 36000]
-    ],
-    "Dairy": [["Unsweetened yogurt", "8 tub", 6000, 48000], ["Unsweetened milk", "1 · 1L carton", 34000, 34000]],
+    ].map(tuple4),
+    "Dairy": [["Unsweetened yogurt", "8 tub", 6000, 48000], ["Unsweetened milk", "1 · 1L carton", 34000, 34000]].map(tuple4),
     "Carbs": [
       ["Rice", "1.5 kg", 22000, 33000], ["Glutinous rice", "0.2 kg", 30000, 6000],
       ["Oats (500g pack)", "1 pack", 45000, 45000], ["Baguette", "3 loaf", 4000, 12000],
       ["Rice noodles (pho/bun)", "1 pack", 15000, 15000]
-    ],
+    ].map(tuple4),
     "Veg": [
       ["Water spinach", "4 bunch", 8000, 32000], ["Cabbage", "1 head", 12000, 12000],
       ["Mustard greens / broccoli", "3 bunch", 10000, 30000], ["Tomato", "0.5 kg", 18000, 9000],
       ["Winter melon", "0.5 kg", 15000, 7500], ["Lettuce + cucumber", "0.4 kg", 18000, 7200]
-    ],
-    "Fruit": [["Banana", "1 bunch", 25000, 25000]],
-    "Seasoning": [["Garlic, lemongrass, ginger, onion", "1 set", 30000, 30000], ["Fish sauce, soy sauce, oil", "1 set", 40000, 40000]]
+    ].map(tuple4),
+    "Fruit": [["Banana", "1 bunch", 25000, 25000]].map(tuple4),
+    "Seasoning": [["Garlic, lemongrass, ginger, onion", "1 set", 30000, 30000], ["Fish sauce, soy sauce, oil", "1 set", 40000, 40000]].map(tuple4)
   },
   prices: [
     ["Egg", "3,200₫", "each"], ["Oats", "90₫", "per g"], ["Banana", "2,300₫", "each"],
@@ -246,7 +254,7 @@ const DEFAULT_HEALTH_PLAN = {
     ["Tofu", "25₫", "per g"], ["Unsweetened yogurt", "6,000₫", "per 150g tub"], ["Unsweetened milk", "34₫", "per ml"],
     ["Cooked rice", "9₫", "per g"], ["Glutinous rice", "30₫", "per g raw"], ["Baguette", "4,000₫", "per loaf"],
     ["Rice noodles (pho/bun)", "5,000₫", "per serving"]
-  ]
+  ].map(tuple3)
 };
 
 function placeholderMeals() {
@@ -260,8 +268,8 @@ const PLACEHOLDER_HEALTH_PLAN = {
   rules: PLACEHOLDER_RULES,
   stats: { age: "", heightM: 1.7, goalWeight: "", fatToLose: "", dailyCalories: "", proteinPerDay: "", lossRate: "", timeline: "", monthlyFoodCost: "" },
   meals: placeholderMeals(),
-  warmup: [["Example warm-up move", "30 sec"]],
-  cooldown: [["Example cool-down move", "20 sec"]],
+  warmup: [["Example warm-up move", "30 sec"]].map(tuple2),
+  cooldown: [["Example cool-down move", "20 sec"]].map(tuple2),
   exercises: [{ name: "Example exercise", sets: "2 × 10", rest: "60s", cue: "How to do it", scale: "Easier/harder variations" }],
   progression: "Describe how you'll progress this workout over time — edit this text.",
   shopping: {},
@@ -322,6 +330,24 @@ function looksLikeUntouchedPlaceholder(p) {
   return !!(p.meals && p.meals.Mon && p.meals.Mon.breakfast && p.meals.Mon.breakfast.dish === "Example meal");
 }
 
+// One-time repair for a plan doc saved back when warmup/cooldown/prices/
+// shopping items were tuple-arrays — Firestore rejects arrays nested inside
+// arrays, so any such doc could only ever have gotten here via a save that
+// silently failed. Converts in place, returns true if anything changed.
+function normalizePlanShape(p) {
+  let changed = false;
+  const fix = (arr, toObj) => arr.map(x => {
+    if (!Array.isArray(x)) return x;
+    changed = true;
+    return toObj(x);
+  });
+  if (p.warmup) p.warmup = fix(p.warmup, tuple2);
+  if (p.cooldown) p.cooldown = fix(p.cooldown, tuple2);
+  if (p.prices) p.prices = fix(p.prices, tuple3);
+  if (p.shopping) for (const cat of Object.keys(p.shopping)) p.shopping[cat] = fix(p.shopping[cat], tuple4);
+  return changed;
+}
+
 async function loadLog() {
   const [logValue, planValue] = await Promise.all([
     loadData(STORAGE_KEY).catch(() => null),
@@ -346,6 +372,7 @@ async function loadLog() {
     plan = JSON.parse(JSON.stringify(hasEngagement ? DEFAULT_HEALTH_PLAN : PLACEHOLDER_HEALTH_PLAN));
     await savePlan();
   }
+  if (normalizePlanShape(plan)) await savePlan();
 
   document.title = plan.meta.title;
   loaded = true;
@@ -448,7 +475,7 @@ function addWarmup(app) {
   const name = app.querySelector("#new-warmup-name").value.trim();
   const time = app.querySelector("#new-warmup-time").value.trim();
   if (!name) return;
-  plan.warmup.push([name, time]);
+  plan.warmup.push({ name, time });
   savePlan();
   render();
 }
@@ -461,7 +488,7 @@ function addCooldown(app) {
   const name = app.querySelector("#new-cooldown-name").value.trim();
   const time = app.querySelector("#new-cooldown-time").value.trim();
   if (!name) return;
-  plan.cooldown.push([name, time]);
+  plan.cooldown.push({ name, time });
   savePlan();
   render();
 }
@@ -522,7 +549,7 @@ function addShoppingItem(app) {
   const total = Number(app.querySelector("#shop-total").value) || 0;
   if (!cat || !name) return;
   if (!plan.shopping[cat]) plan.shopping[cat] = [];
-  plan.shopping[cat].push([name, qty, unit, total]);
+  plan.shopping[cat].push({ name, qty, unit, total });
   savePlan();
   render();
 }
@@ -538,7 +565,7 @@ function addPrice(app) {
   const price = app.querySelector("#price-value").value.trim();
   const per = app.querySelector("#price-per").value.trim();
   if (!name) return;
-  plan.prices.push([name, price, per]);
+  plan.prices.push({ name, price, per });
   savePlan();
   render();
 }
@@ -615,7 +642,7 @@ function render() {
     return acc;
   }, { cal: 0, protein: 0, cost: 0 });
   const avgCalPerDay = Math.round(weekTotals.cal / DAYS.length);
-  const shoppingTotal = Object.values(plan.shopping).flat().reduce((s, item) => s + Number(item[3] || 0), 0);
+  const shoppingTotal = Object.values(plan.shopping).flat().reduce((s, item) => s + Number(item.total || 0), 0);
 
   const today = todayAbbrev();
   const todayEntry = log[todayDateStr()] || {};
@@ -661,7 +688,7 @@ function render() {
     <table class="ref-table">
       <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th><th></th></tr></thead>
       <tbody>
-        ${items.map(([name, qty, unit, total], i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(String(qty))}</td><td class="num">${Number(unit).toLocaleString()}₫</td><td class="num">${Number(total).toLocaleString()}₫</td><td>${editMode ? `<button class="row-del" data-action="delete-shopping" data-cat="${escapeHtml(cat)}" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
+        ${items.map(({ name, qty, unit, total }, i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(String(qty))}</td><td class="num">${Number(unit).toLocaleString()}₫</td><td class="num">${Number(total).toLocaleString()}₫</td><td>${editMode ? `<button class="row-del" data-action="delete-shopping" data-cat="${escapeHtml(cat)}" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
       </tbody>
     </table>
   `).join("");
@@ -670,7 +697,7 @@ function render() {
     <table class="ref-table">
       <thead><tr><th>Ingredient</th><th>Price</th><th>Priced per</th><th></th></tr></thead>
       <tbody>
-        ${plan.prices.map(([name, price, per], i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(price)}</td><td>${escapeHtml(per)}</td><td>${editMode ? `<button class="row-del" data-action="delete-price" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
+        ${plan.prices.map(({ name, price, per }, i) => `<tr><td>${escapeHtml(name)}</td><td class="num">${escapeHtml(price)}</td><td>${escapeHtml(per)}</td><td>${editMode ? `<button class="row-del" data-action="delete-price" data-item="${i}" type="button">&times;</button>` : ""}</td></tr>`).join("")}
       </tbody>
     </table>
   `;
@@ -823,7 +850,7 @@ function render() {
           <p class="subtitle" style="margin-bottom:6px;">${escapeHtml(plan.meta.workoutSubtitle)}</p>
           <p class="progress-note" style="margin-bottom:16px;">Muscle burn is OK. Sharp or joint pain means stop.</p>
           <p class="eyebrow">Warm-up · 2-3 min</p>
-          <ul class="prep-list">${plan.warmup.map(([name, time], i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-warmup" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
+          <ul class="prep-list">${plan.warmup.map(({ name, time }, i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-warmup" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
           ${editMode ? `
             <div class="log-form">
               <div class="log-field"><label for="new-warmup-name">New warm-up move</label><input type="text" id="new-warmup-name" placeholder="e.g. Jumping jacks" /></div>
@@ -844,7 +871,7 @@ function render() {
             <div class="log-save-row"><button class="btn btn-small" id="add-exercise-btn" type="button">Add exercise</button></div>
           ` : ""}
           <p class="eyebrow" style="margin-top:16px;">Cool-down · 2-3 min</p>
-          <ul class="prep-list">${plan.cooldown.map(([name, time], i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-cooldown" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
+          <ul class="prep-list">${plan.cooldown.map(({ name, time }, i) => `<li><span>${escapeHtml(name)}</span><span class="prep-time">${escapeHtml(time)}${editMode ? ` <button class="row-del" data-action="delete-cooldown" data-item="${i}" type="button">&times;</button>` : ""}</span></li>`).join("")}</ul>
           ${editMode ? `
             <div class="log-form">
               <div class="log-field"><label for="new-cooldown-name">New cool-down move</label><input type="text" id="new-cooldown-name" placeholder="e.g. Forward fold" /></div>
