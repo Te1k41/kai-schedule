@@ -425,7 +425,7 @@ function addGoal(app) {
   const target = parseAmount(app.querySelector("#goal-target").value);
   const saved = parseAmount(app.querySelector("#goal-saved").value);
   const link = app.querySelector("#goal-link").value.trim();
-  if (!name || !target) return;
+  if (!name || !target) { notifySaveFailed("Goal needs a name and a target amount."); return; }
   goals.push({ id: uid(), name, target, saved, link });
   saveGoals();
   render();
