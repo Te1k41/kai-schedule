@@ -150,6 +150,7 @@ let loaded = false;
 let editMode = false;
 let editingBlockId = null;
 let editingMeta = false;
+let editingImport = false;
 
 const DEFAULT_SCHEDULE_META = { title: "Your Weekday Timetable", subtitle: "Job, training, meals, and rest — every day of the week, mapped out." };
 
@@ -203,6 +204,47 @@ function toggleEditMode() {
   editMode = !editMode;
   editingBlockId = null;
   editingMeta = false;
+  editingImport = false;
+  render();
+}
+
+function startImport() {
+  editingImport = true;
+  editingBlockId = null;
+  render();
+}
+function cancelImport() {
+  editingImport = false;
+  render();
+}
+
+// One block per line: "HH:MM-HH:MM category label | optional note".
+// Replaces every block on the selected day — meant for pasting in a whole
+// revised day at once instead of adding blocks one at a time.
+function parseBlockLines(text) {
+  const re = /^(\d{2}:\d{2})-(\d{2}:\d{2})\s+(\w+)\s+(.+)$/;
+  const catKeys = Object.keys(CAT_TAGS);
+  const blocks = [];
+  const errors = [];
+  text.split("\n").map(l => l.trim()).filter(Boolean).forEach((line, i) => {
+    const m = line.match(re);
+    if (!m) { errors.push(`Line ${i + 1}: can't parse "${line}"`); return; }
+    const [, start, end, cat, rest] = m;
+    if (!catKeys.includes(cat)) { errors.push(`Line ${i + 1}: unknown category "${cat}" (use ${catKeys.join("/")})`); return; }
+    const [label, note] = rest.split(" | ").map(s => s.trim());
+    blocks.push({ id: uid(), start, end, cat, label, note: note || "", detail: "" });
+  });
+  return { blocks, errors };
+}
+
+function importBlocksForm(app) {
+  const { blocks, errors } = parseBlockLines(app.querySelector("#import-text").value);
+  if (errors.length) { notifySaveFailed(errors[0] + (errors.length > 1 ? ` (+${errors.length - 1} more)` : "")); return; }
+  if (!blocks.length) { notifySaveFailed("Paste at least one line."); return; }
+  blocks.sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+  weekBlocks[selectedDay] = blocks;
+  editingImport = false;
+  saveSchedule();
   render();
 }
 
@@ -318,7 +360,19 @@ function render() {
     `;
   }).join("");
 
-  if (editMode) {
+  if (editMode && editingImport) {
+    rightHtml += `
+      <div class="block-form">
+        <p class="eyebrow" style="margin-top:20px;">Paste blocks for ${DAY_FULL[selectedDay]}</p>
+        <p class="subtitle" style="margin-bottom:10px;">One block per line: <code>HH:MM-HH:MM category label</code>, optional <code> | note</code> at the end. Categories: ${Object.keys(CAT_TAGS).join(", ")}. This replaces every block on ${DAY_FULL[selectedDay]}.</p>
+        <textarea id="import-text" rows="10" style="width:100%; font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--ink); background:var(--paper); border:1px solid var(--border); border-radius:2px; padding:9px 10px;" placeholder="06:25-06:40 life Wake + intention"></textarea>
+        <div class="log-save-row">
+          <button class="btn" id="import-blocks-save-btn" type="button">Replace ${DAY_FULL[selectedDay]}'s blocks</button>
+          <button class="btn btn-ghost btn-small" id="cancel-import-btn" type="button">Cancel</button>
+        </div>
+      </div>
+    `;
+  } else if (editMode) {
     const editing = editingBlockId ? blocks.find(b => b.id === editingBlockId) : null;
     rightHtml += `
       <div class="block-form">
@@ -364,6 +418,7 @@ function render() {
     <div class="edit-toggle-row">
       <button class="btn btn-ghost btn-small" id="edit-toggle-btn" type="button">${editMode ? "Done editing" : "Edit schedule"}</button>
       ${editMode && !editingMeta ? `<button class="btn btn-ghost btn-small" id="edit-meta-btn" type="button">Edit title/subtitle</button>` : ""}
+      ${editMode && !editingImport ? `<button class="btn btn-ghost btn-small" id="import-blocks-btn" type="button">Paste blocks</button>` : ""}
     </div>
     ${editMode ? `<div class="edit-fab"><button class="btn btn-small" id="done-editing-fab" type="button">Done editing</button></div>` : ""}
     <div class="layout">
@@ -404,6 +459,12 @@ function render() {
   if (saveMetaBtn) saveMetaBtn.addEventListener("click", () => saveEditMeta(app));
   const cancelMetaBtn = app.querySelector("#cancel-meta-btn");
   if (cancelMetaBtn) cancelMetaBtn.addEventListener("click", cancelEditMeta);
+  const importBtn = app.querySelector("#import-blocks-btn");
+  if (importBtn) importBtn.addEventListener("click", startImport);
+  const importSaveBtn = app.querySelector("#import-blocks-save-btn");
+  if (importSaveBtn) importSaveBtn.addEventListener("click", () => importBlocksForm(app));
+  const cancelImportBtn = app.querySelector("#cancel-import-btn");
+  if (cancelImportBtn) cancelImportBtn.addEventListener("click", cancelImport);
   const doneFab = app.querySelector("#done-editing-fab");
   if (doneFab) doneFab.addEventListener("click", toggleEditMode);
 }
