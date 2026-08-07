@@ -264,7 +264,15 @@ function addAccount(app) {
   const name = app.querySelector("#acc-name").value.trim();
   const startingBalance = parseAmount(app.querySelector("#acc-start").value);
   if (!name) return;
-  data.accounts.push({ id: uid(), name, startingBalance });
+  const isFirstAccount = data.accounts.length === 0;
+  const acc = { id: uid(), name, startingBalance };
+  data.accounts.push(acc);
+  if (isFirstAccount) {
+    data.income.forEach(e => { if (!e.account) e.account = acc.id; });
+    data.expenses.forEach(e => { if (!e.account) e.account = acc.id; });
+    subscriptions.forEach(s => { if (!s.account) s.account = acc.id; });
+    saveSubscriptions();
+  }
   saveFinance();
   render();
 }
@@ -300,6 +308,16 @@ function removeEntry(list, id) {
   } else if (list === "subscriptions") {
     subscriptions = subscriptions.filter(e => e.id !== id);
     saveSubscriptions();
+  } else if (list === "accounts") {
+    const used = data.income.some(e => e.account === id)
+      || data.expenses.some(e => e.account === id)
+      || subscriptions.some(s => s.account === id);
+    if (used) {
+      alert("This account has income, expenses, or subscriptions linked to it. Move or delete those first, or their account tag will show as —.");
+      return;
+    }
+    data.accounts = data.accounts.filter(e => e.id !== id);
+    saveFinance();
   } else {
     data[list] = data[list].filter(e => e.id !== id);
     saveFinance();
