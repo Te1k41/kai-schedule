@@ -331,6 +331,11 @@ function removeEntry(list, id) {
   } else if (list === "subscriptions") {
     subscriptions = subscriptions.filter(e => e.id !== id);
     saveSubscriptions();
+    const hadLinked = data.expenses.some(e => e.subId === id);
+    if (hadLinked) {
+      data.expenses = data.expenses.filter(e => e.subId !== id);
+      saveFinance();
+    }
   } else if (list === "accounts") {
     const used = data.income.some(e => e.account === id)
       || data.expenses.some(e => e.account === id)
