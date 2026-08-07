@@ -460,6 +460,14 @@ function setEntryNote(list, id, note) {
   render();
 }
 
+function setAccountStart(id, value) {
+  const acc = data.accounts.find(a => a.id === id);
+  if (!acc) return;
+  acc.startingBalance = parseAmount(value);
+  saveFinance();
+  render();
+}
+
 async function addSubscription(app) {
   const name = app.querySelector("#sub-name").value.trim();
   const category = app.querySelector("#sub-category").value;
@@ -696,7 +704,11 @@ function render() {
           <span class="budget-name">${escapeHtml(a.name)}</span>
           <span class="budget-amounts ${bal < 0 ? "over" : ""}">${fmtBoth(bal)}</span>
         </div>
-        <button class="row-del" data-del="accounts" data-id="${a.id}" type="button">&times;</button>
+        <div style="display:flex; align-items:center; gap:6px; margin-top:6px;">
+          <label style="font-size:var(--fs-2xs); color:var(--ink-soft);">Starting balance</label>
+          <input type="text" inputmode="numeric" class="cat-edit" data-acc-start="${a.id}" value="${a.startingBalance}" style="width:120px;" />
+          <button class="row-del" data-del="accounts" data-id="${a.id}" type="button" style="margin-left:auto;">&times;</button>
+        </div>
       </div>
     `;
   }).join("") : `<p class="rows-empty">No accounts yet — add one below (Card, Cash, Bank...).</p>`;
@@ -970,6 +982,10 @@ function render() {
     if (el) attachThousandsInput(el);
   });
   app.querySelectorAll("[data-budget-cat]").forEach(attachThousandsInput);
+  app.querySelectorAll("[data-acc-start]").forEach(inp => {
+    attachThousandsInput(inp);
+    inp.addEventListener("change", () => setAccountStart(inp.dataset.accStart, inp.value));
+  });
   app.querySelector("#add-income-source-btn").addEventListener("click", () => addIncomeSource(app));
   app.querySelectorAll("[data-budget-pct]").forEach(input => {
     input.addEventListener("change", () => setBudgetPct(input.dataset.budgetPct, input.value));
