@@ -363,6 +363,24 @@ function removeEntry(list, id) {
     }
     data.accounts = data.accounts.filter(e => e.id !== id);
     saveFinance();
+  } else if (list === "expenses") {
+    const entry = data.expenses.find(e => e.id === id);
+    data.expenses = data.expenses.filter(e => e.id !== id);
+    saveFinance();
+    if (entry && entry.subId) {
+      const sub = subscriptions.find(s => s.id === entry.subId);
+      if (sub && sub.lastLoggedMonth && entry.date && entry.date.startsWith(sub.lastLoggedMonth)) {
+        sub.lastLoggedMonth = null;
+        saveSubscriptions();
+      }
+    }
+    if (entry && entry.goalId) {
+      const g = goals.find(g => g.id === entry.goalId);
+      if (g && g.done) {
+        g.done = false;
+        saveGoals();
+      }
+    }
   } else {
     data[list] = data[list].filter(e => e.id !== id);
     saveFinance();
@@ -422,6 +440,22 @@ function setEntryAccount(list, id, account) {
   const entry = data[list].find(e => e.id === id);
   if (!entry) return;
   entry.account = account;
+  saveFinance();
+  render();
+}
+
+function setEntryDate(list, id, date) {
+  const entry = data[list].find(e => e.id === id);
+  if (!entry || !date) return;
+  entry.date = date;
+  saveFinance();
+  render();
+}
+
+function setEntryNote(list, id, note) {
+  const entry = data[list].find(e => e.id === id);
+  if (!entry) return;
+  entry.note = note;
   saveFinance();
   render();
 }
@@ -696,7 +730,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Source</th><th>Account</th><th>Amount</th><th>Balance</th><th></th></tr></thead>
       <tbody>
-        ${incomeRows.map(e => `<tr><td>${e.date}</td><td>${escapeHtml(e.source)}</td><td><select class="cat-edit" data-acc-edit="income" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${incomeRows.map(e => `<tr><td><input type="date" class="cat-edit" data-date-edit="income" data-id="${e.id}" value="${e.date}" /></td><td>${escapeHtml(e.source)}</td><td><select class="cat-edit" data-acc-edit="income" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No income logged yet.</p>`;
@@ -706,7 +740,7 @@ function render() {
     <div class="table-scroll"><table class="rows-table">
       <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th>Balance</th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td><select class="cat-edit" data-acc-edit="expenses" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td><input type="date" class="cat-edit" data-date-edit="expenses" data-id="${e.id}" value="${e.date}" /></td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td><select class="cat-edit" data-acc-edit="expenses" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td><input type="text" class="cat-edit" data-note-edit="expenses" data-id="${e.id}" value="${escapeHtml(e.note || "").replace(/"/g, "&quot;")}" placeholder="note" />${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
@@ -963,6 +997,12 @@ function render() {
   });
   app.querySelectorAll("[data-acc-edit]").forEach(sel => {
     sel.addEventListener("change", () => setEntryAccount(sel.dataset.accEdit, sel.dataset.id, sel.value));
+  });
+  app.querySelectorAll("[data-date-edit]").forEach(inp => {
+    inp.addEventListener("change", () => setEntryDate(inp.dataset.dateEdit, inp.dataset.id, inp.value));
+  });
+  app.querySelectorAll("[data-note-edit]").forEach(inp => {
+    inp.addEventListener("change", () => setEntryNote(inp.dataset.noteEdit, inp.dataset.id, inp.value));
   });
 
   const usdInput = app.querySelector("#conv-usd");
