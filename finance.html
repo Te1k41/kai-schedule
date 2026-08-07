@@ -212,9 +212,14 @@ async function loadFinance() {
 
   if (data.accounts.length === 1) {
     const onlyAcc = data.accounts[0].id;
-    let goalsChanged = false;
-    goals.forEach(g => { if (!g.account) { g.account = onlyAcc; goalsChanged = true; } });
+    let goalsChanged = false, financeChanged = false, subsChanged = false;
+    goals.forEach(g => { if (g.account !== onlyAcc) { g.account = onlyAcc; goalsChanged = true; } });
+    data.income.forEach(e => { if (e.account !== onlyAcc) { e.account = onlyAcc; financeChanged = true; } });
+    data.expenses.forEach(e => { if (e.account !== onlyAcc) { e.account = onlyAcc; financeChanged = true; } });
+    subscriptions.forEach(s => { if (s.account !== onlyAcc) { s.account = onlyAcc; subsChanged = true; } });
     if (goalsChanged) await saveGoals();
+    if (financeChanged) await saveFinance();
+    if (subsChanged) await saveSubscriptions();
   }
 
   loaded = true;
