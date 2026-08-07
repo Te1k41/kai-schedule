@@ -60,6 +60,16 @@
   .cat-edit { font-family: var(--font); font-size: var(--fs-2xs); color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 2px; padding: 3px 4px; }
   .log-plain { background: transparent; border-color: transparent; padding: 2px 2px; }
   .log-plain:hover, .log-plain:focus { background: var(--paper); border-color: var(--border); }
+
+  .log-day + .log-day { margin-top: 18px; }
+  .log-day-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1.5px solid var(--ink); }
+  .log-day-date { font-weight: 700; font-size: var(--fs-sm); }
+  .log-day-bal { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--ink-soft); }
+  .log-item { display: flex; align-items: center; gap: 10px; padding: 7px 0 7px 8px; border-bottom: 1px solid var(--border); border-left: 3px solid var(--cat-color, var(--ink-soft)); }
+  .log-item-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .log-item-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .log-item-amount { font-family: var(--font-mono); white-space: nowrap; text-align: right; min-width: 100px; }
+  .log-item-balance { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--ink-soft); white-space: nowrap; text-align: right; min-width: 90px; }
   .row-del { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
   .row-del:hover { color: var(--danger); }
   .rows-empty { font-size: var(--fs-sm); color: var(--ink-soft); font-style: italic; margin: 0 0 12px; }
@@ -748,34 +758,43 @@ function render() {
   const logRows = [
     ...data.income.map(e => ({ ...e, kind: "income" })),
     ...data.expenses.map(e => ({ ...e, kind: "expense" })),
-  ].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 30);
+  ].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 40);
 
-  const logHtml = logRows.length ? `
-    <div class="table-scroll"><table class="rows-table">
-      <thead><tr><th>Date</th><th>Category / Source</th><th>Account</th><th>Note</th><th>Amount</th><th>Balance</th><th></th></tr></thead>
-      <tbody>
-        ${logRows.map(e => {
-          const isExp = e.kind === "expense";
-          const list = isExp ? "expenses" : "income";
-          const catCell = isExp
-            ? `<select class="cat-edit log-plain" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select>`
-            : `<span style="color:var(--cat-life); font-weight:700;">${escapeHtml(e.source || "Income")}</span>`;
-          const noteCell = isExp
-            ? `<input type="text" class="cat-edit log-plain" data-note-edit="expenses" data-id="${e.id}" value="${escapeHtml(e.note || "").replace(/"/g, "&quot;")}" placeholder="note" />${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}`
-            : "";
-          return `<tr ${isExp ? `data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"` : ""}>
-            <td><span style="display:block;">${humanDate(e.date)}</span><input type="text" class="cat-edit log-plain" data-date-edit="${list}" data-id="${e.id}" value="${e.date}" style="width:88px; font-size:10.5px; color:var(--ink-soft);" /></td>
-            <td>${catCell}</td>
-            <td><select class="cat-edit log-plain" data-acc-edit="${list}" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td>
-            <td>${noteCell}</td>
-            <td class="num" style="color:${isExp ? "var(--danger)" : "var(--cat-life)"};">${isExp ? "&minus;" : "+"}${fmtBoth(e.amount)}</td>
-            <td class="num">${balCell(e)}</td>
-            <td><button class="row-del" data-del="${list}" data-id="${e.id}" type="button">&times;</button></td>
-          </tr>`;
-        }).join("")}
-      </tbody>
-    </table></div>
-  ` : `<p class="rows-empty">Nothing logged yet.</p>`;
+  const logDays = [];
+  logRows.forEach(e => {
+    let day = logDays[logDays.length - 1];
+    if (!day || day.date !== e.date) { day = { date: e.date, rows: [] }; logDays.push(day); }
+    day.rows.push(e);
+  });
+
+  const logHtml = logDays.length ? logDays.map(day => `
+    <div class="log-day">
+      <div class="log-day-head">
+        <span class="log-day-date">${humanDate(day.date)}</span>
+        <span class="log-day-bal">end of day: ${fmtVnd(balanceAsOf(day.date))}</span>
+      </div>
+      ${day.rows.map(e => {
+        const isExp = e.kind === "expense";
+        const list = isExp ? "expenses" : "income";
+        const catCell = isExp
+          ? `<select class="cat-edit log-plain" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select>`
+          : `<span style="color:var(--cat-life); font-weight:700;">Income</span>`;
+        const titleCell = isExp
+          ? `<input type="text" class="cat-edit log-plain" data-note-edit="expenses" data-id="${e.id}" value="${escapeHtml(e.note || "").replace(/"/g, "&quot;")}" placeholder="note" />${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}`
+          : escapeHtml(e.source || "Income");
+        return `
+        <div class="log-item" style="--cat-color:${isExp ? (CAT_COLOR[e.category] || "var(--ink-soft)") : "var(--cat-life)"};">
+          <div class="log-item-main">
+            <span>${titleCell}</span>
+            <span class="log-item-meta">${catCell}<select class="cat-edit log-plain" data-acc-edit="${list}" data-id="${e.id}">${accountOptionsHtml(e.account)}</select><input type="text" class="cat-edit log-plain" data-date-edit="${list}" data-id="${e.id}" value="${e.date}" style="width:82px; font-size:10.5px; color:var(--ink-soft);" /></span>
+          </div>
+          <span class="log-item-amount" style="color:${isExp ? "var(--danger)" : "var(--cat-life)"};">${isExp ? "&minus;" : "+"}${fmtBoth(e.amount)}</span>
+          <span class="log-item-balance">${balCell(e)}</span>
+          <button class="row-del" data-del="${list}" data-id="${e.id}" type="button">&times;</button>
+        </div>`;
+      }).join("")}
+    </div>
+  `).join("") : `<p class="rows-empty">Nothing logged yet.</p>`;
 
   const incomeSourcesHtml = data.incomeSources.length ? data.incomeSources.map(s => `
     <div class="budget-row">
