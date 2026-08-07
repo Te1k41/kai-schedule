@@ -176,6 +176,11 @@ let calMonthIdx = new Date().getMonth();
 function effectiveRate() { return rate.usdToVnd ? rate.usdToVnd * (1 + markupPct / 100) : null; }
 
 function todayDateStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function humanDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
 function currentMonthKey() { return todayDateStr().slice(0, 7); }
 function fmtUsd(n) { return rate.usdToVnd ? "$" + (n / rate.usdToVnd).toFixed(2) : ""; }
 function fmtBoth(n) { const usd = fmtUsd(n); return usd ? `${fmtVnd(n)} (${usd})` : fmtVnd(n); }
@@ -757,7 +762,7 @@ function render() {
             ? `<input type="text" class="cat-edit" data-note-edit="expenses" data-id="${e.id}" value="${escapeHtml(e.note || "").replace(/"/g, "&quot;")}" placeholder="note" />${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}`
             : "";
           return `<tr ${isExp ? `data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"` : ""}>
-            <td><input type="text" class="cat-edit" data-date-edit="${list}" data-id="${e.id}" value="${e.date}" style="width:92px;" /></td>
+            <td><input type="text" class="cat-edit" data-date-edit="${list}" data-id="${e.id}" value="${e.date}" style="width:92px;" /><br><span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${humanDate(e.date)}</span></td>
             <td>${catCell}</td>
             <td><select class="cat-edit" data-acc-edit="${list}" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td>
             <td>${noteCell}</td>
