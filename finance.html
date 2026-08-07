@@ -211,24 +211,23 @@ async function loadFinance() {
   }
 
   loaded = true;
-  await applyRecurringSubscriptions();
   render();
 }
 
-async function applyRecurringSubscriptions() {
+async function toggleSubscriptionLog(id) {
+  const sub = subscriptions.find(s => s.id === id);
+  if (!sub) return;
   const mk = currentMonthKey();
-  let subsChanged = false, expensesChanged = false;
-  for (const sub of subscriptions) {
-    if (sub.endMonth && mk > sub.endMonth) continue;
-    if (sub.lastLoggedMonth !== mk) {
-      data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account, subId: sub.id });
-      sub.lastLoggedMonth = mk;
-      subsChanged = true;
-      expensesChanged = true;
-    }
+  if (sub.lastLoggedMonth === mk) {
+    data.expenses = data.expenses.filter(e => !(e.subId === id && e.date && e.date.startsWith(mk)));
+    sub.lastLoggedMonth = null;
+  } else {
+    data.expenses.push({ id: uid(), date: todayDateStr(), category: sub.category, amount: sub.amount, note: `${sub.name} (auto)`, account: sub.account, subId: sub.id });
+    sub.lastLoggedMonth = mk;
   }
-  if (subsChanged) await saveSubscriptions();
-  if (expensesChanged) await saveFinance();
+  await saveSubscriptions();
+  await saveFinance();
+  render();
 }
 
 async function saveFinance() {
@@ -328,6 +327,11 @@ function removeEntry(list, id) {
   if (list === "goals") {
     goals = goals.filter(e => e.id !== id);
     saveGoals();
+    const hadLinked = data.expenses.some(e => e.goalId === id);
+    if (hadLinked) {
+      data.expenses = data.expenses.filter(e => e.goalId !== id);
+      saveFinance();
+    }
   } else if (list === "subscriptions") {
     subscriptions = subscriptions.filter(e => e.id !== id);
     saveSubscriptions();
@@ -339,7 +343,8 @@ function removeEntry(list, id) {
   } else if (list === "accounts") {
     const used = data.income.some(e => e.account === id)
       || data.expenses.some(e => e.account === id)
-      || subscriptions.some(s => s.account === id);
+      || subscriptions.some(s => s.account === id)
+      || goals.some(g => g.account === id);
     if (used) {
       alert("This account has income, expenses, or subscriptions linked to it. Move or delete those first, or their account tag will show as —.");
       return;
@@ -354,13 +359,24 @@ function removeEntry(list, id) {
 }
 
 function toggleDone(list, id) {
-  const arr = list === "goals" ? goals : list === "subscriptions" ? subscriptions : data[list];
-  const entry = arr.find(e => e.id === id);
-  if (!entry) return;
-  entry.done = !entry.done;
-  if (list === "goals") saveGoals();
-  else if (list === "subscriptions") saveSubscriptions();
-  else saveFinance();
+  if (list === "subscriptions") return toggleSubscriptionLog(id);
+  if (list === "goals") return toggleGoalDone(id);
+}
+
+function toggleGoalDone(id) {
+  const g = goals.find(g => g.id === id);
+  if (!g) return;
+  if (!g.done) {
+    if (!g.account) { notifySaveFailed("Pick an account for this goal first."); return; }
+    data.expenses.push({ id: uid(), date: todayDateStr(), category: "other", amount: g.target, note: `${g.name} (goal)`, account: g.account, goalId: g.id });
+    g.done = true;
+    saveFinance();
+  } else {
+    data.expenses = data.expenses.filter(e => e.goalId !== id);
+    g.done = false;
+    saveFinance();
+  }
+  saveGoals();
   render();
 }
 
@@ -383,6 +399,14 @@ function setEntryCategory(list, id, category) {
 }
 
 function setEntryAccount(list, id, account) {
+  if (list === "goals") {
+    const g = goals.find(e => e.id === id);
+    if (!g) return;
+    g.account = account;
+    saveGoals();
+    render();
+    return;
+  }
   const entry = data[list].find(e => e.id === id);
   if (!entry) return;
   entry.account = account;
@@ -401,7 +425,6 @@ async function addSubscription(app) {
   if (!name || !amount) return;
   subscriptions.push({ id: uid(), name, category, account, amount, dueDay, endMonth, link, lastLoggedMonth: null });
   await saveSubscriptions();
-  await applyRecurringSubscriptions();
   render();
 }
 
@@ -534,8 +557,9 @@ function addGoal(app) {
   }
   const saved = parseAmount(app.querySelector("#goal-saved").value);
   const link = app.querySelector("#goal-link").value.trim();
+  const account = app.querySelector("#goal-account").value;
   if (!name || !target) { notifySaveFailed("Goal needs a name and a target amount."); return; }
-  goals.push({ id: uid(), name, target, saved, link });
+  goals.push({ id: uid(), name, target, saved, link, account });
   saveGoals();
   render();
 }
@@ -615,7 +639,7 @@ function render() {
   const net = incomeTotal - expenseTotal;
   const goalTotalTarget = goals.reduce((s, g) => s + g.target, 0);
   const goalTotalSaved = goals.reduce((s, g) => s + g.saved, 0);
-  const subTotal = subscriptions.reduce((s, sub) => s + sub.amount, 0);
+  const subTotal = subscriptions.reduce((s, sub) => (sub.endMonth && currentMonthKey() > sub.endMonth) ? s : s + sub.amount, 0);
   const totalBalanceVnd = totalBalance(data);
 
   const accountsHtml = data.accounts.length ? data.accounts.map(a => {
@@ -631,15 +655,13 @@ function render() {
     `;
   }).join("") : `<p class="rows-empty">No accounts yet — add one below (Card, Cash, Bank...).</p>`;
 
-  const subsHtml = subscriptions.length ? [...subscriptions].sort((a, b) => !!a.done - !!b.done).map(sub => {
+  const subsHtml = subscriptions.length ? [...subscriptions].sort((a, b) => (a.lastLoggedMonth === currentMonthKey()) - (b.lastLoggedMonth === currentMonthKey())).map(sub => {
     const ended = sub.endMonth && currentMonthKey() > sub.endMonth;
     const endLabel = sub.endMonth ? `ends ${new Date(sub.endMonth + "-01").toLocaleString("en-US", { month: "short", year: "numeric" })}` : "";
-    let statusLabel;
-    if (ended) statusLabel = "ended";
-    else if (sub.lastLoggedMonth === currentMonthKey()) statusLabel = "logged this month";
-    else statusLabel = "logs next visit";
+    const loggedThisCycle = sub.lastLoggedMonth === currentMonthKey();
+    const statusLabel = ended ? "ended" : loggedThisCycle ? "logged this month" : "not logged yet — click Done when paid";
     return `
-    <div class="budget-row ${sub.done ? "is-done" : ""}">
+    <div class="budget-row ${loggedThisCycle ? "is-done" : ""}">
       <div class="budget-top">
         <span class="budget-name">${escapeHtml(sub.name)}${sub.link ? ` <a href="${escapeHtml(sub.link)}" target="_blank" rel="noopener" title="${escapeHtml(sub.link)}">&#8599;</a>` : ""}${ended ? " (ended)" : ""}</span>
         <span class="budget-amounts">${fmtBoth(sub.amount)}/mo &middot; ${accountName(data, sub.account)}${sub.dueDay ? ` &middot; due day ${sub.dueDay}` : ""}${endLabel ? ` &middot; ${endLabel}` : ""}</span>
@@ -647,7 +669,7 @@ function render() {
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <select class="cat-edit" data-cat-edit="subscriptions" data-id="${sub.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === sub.category ? "selected" : ""}>${c.label}</option>`).join("")}</select>
         <span style="font-size:var(--fs-2xs); color:var(--ink-soft);">${statusLabel}</span>
-        <button class="row-done ${sub.done ? "on" : ""}" data-done="subscriptions" data-id="${sub.id}" type="button" style="margin-left:auto;">&check; Done</button>
+        <button class="row-done ${loggedThisCycle ? "on" : ""}" data-done="subscriptions" data-id="${sub.id}" type="button" style="margin-left:auto;">&check; Done</button>
         <button class="row-del" data-del="subscriptions" data-id="${sub.id}" type="button">&times;</button>
       </div>
     </div>
@@ -727,9 +749,10 @@ function render() {
         </div>
         <div class="goal-amounts" style="margin-bottom:6px;">${fmtBoth(g.saved)} / ${fmtBoth(g.target)}</div>
         <div class="budget-bar-track" style="margin-bottom:8px;"><div class="budget-bar-fill" style="width:${pct}%;"></div></div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-ghost btn-small" data-goal-bump="${g.id}" data-delta="100000" type="button">+100k VND</button>
           <button class="btn btn-ghost btn-small" data-goal-bump="${g.id}" data-delta="-100000" type="button">-100k VND</button>
+          <select class="cat-edit" data-acc-edit="goals" data-id="${g.id}">${accountOptionsHtml(g.account)}</select>
           <button class="row-done ${g.done ? "on" : ""}" data-done="goals" data-id="${g.id}" type="button">&check; Done</button>
           <button class="row-del" data-del="goals" data-id="${g.id}" type="button" style="margin-left:auto;">&times;</button>
         </div>
@@ -797,6 +820,7 @@ function render() {
             <div class="log-field"><label for="goal-target-usd">Target (USD)</label><input type="number" id="goal-target-usd" placeholder="optional" /></div>
             <div class="log-field"><label for="goal-target">Target (VND)</label><input type="text" inputmode="numeric" id="goal-target" placeholder="0" /></div>
             <div class="log-field"><label for="goal-saved">Saved (VND)</label><input type="text" inputmode="numeric" id="goal-saved" placeholder="0" /></div>
+            <div class="log-field"><label for="goal-account">Account (for when it's done)</label><select id="goal-account">${accountOptionsHtml()}</select></div>
             <div class="log-field wide"><label for="goal-link">Link (optional, e.g. a digital service)</label><input type="url" id="goal-link" placeholder="https://..." /></div>
           </div>
           <div class="log-save-row"><button class="btn" id="add-goal-btn" type="button">Add goal</button></div>
