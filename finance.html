@@ -210,6 +210,13 @@ async function loadFinance() {
     subscriptions = defaultSubscriptions();
   }
 
+  if (data.accounts.length === 1) {
+    const onlyAcc = data.accounts[0].id;
+    let goalsChanged = false;
+    goals.forEach(g => { if (!g.account) { g.account = onlyAcc; goalsChanged = true; } });
+    if (goalsChanged) await saveGoals();
+  }
+
   loaded = true;
   render();
 }
