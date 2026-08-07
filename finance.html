@@ -114,6 +114,7 @@
   .cal-cell.cal-today { background: var(--paper-deep); box-shadow: inset 0 0 0 1.5px var(--vermillion); }
   .cal-day { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--ink-soft); }
   .cal-today .cal-day { color: var(--vermillion); font-weight: 700; }
+  .cal-balance { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-soft); margin-top: auto; }
   .cal-income { font-family: var(--font-mono); font-size: 11px; color: var(--cat-life); }
   .cal-expense { font-family: var(--font-mono); font-size: 11px; color: var(--danger); }
   .cal-bill { font-size: 10.5px; color: var(--gold); background: var(--paper-deep); border-radius: 2px; padding: 1px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -253,6 +254,28 @@ function monthTotal(list) {
 function categoryMonthTotal(catKey) {
   const mk = currentMonthKey();
   return data.expenses.filter(e => e.date && e.date.startsWith(mk) && e.category === catKey).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+}
+
+function balanceAsOf(dateStr) {
+  return data.accounts.reduce((sum, a) => {
+    const inc = data.income.filter(e => e.account === a.id && e.date && e.date <= dateStr).reduce((s, e) => s + Number(e.amount || 0), 0);
+    const exp = data.expenses.filter(e => e.account === a.id && e.date && e.date <= dateStr).reduce((s, e) => s + Number(e.amount || 0), 0);
+    return sum + a.startingBalance + inc - exp;
+  }, 0);
+}
+
+function runningBalanceMap() {
+  const map = new Map();
+  data.accounts.forEach(acc => {
+    const txns = [
+      ...data.income.filter(e => e.account === acc.id).map(e => ({ id: e.id, date: e.date, amount: Number(e.amount || 0), sign: 1 })),
+      ...data.expenses.filter(e => e.account === acc.id).map(e => ({ id: e.id, date: e.date, amount: Number(e.amount || 0), sign: -1 })),
+    ];
+    txns.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    let bal = acc.startingBalance;
+    txns.forEach(t => { bal += t.sign * t.amount; map.set(t.id, bal); });
+  });
+  return map;
 }
 
 function accountOptionsHtml(selectedId) {
@@ -428,6 +451,7 @@ function calendarHtml() {
         ${inc ? `<span class="cal-income">+${fmtVnd(inc)}</span>` : ""}
         ${exp ? `<span class="cal-expense">&minus;${fmtVnd(exp)}</span>` : ""}
         ${bills.map(b => `<span class="cal-bill" title="${escapeHtml(b.name)} due &middot; ${fmtVnd(b.amount)}">${escapeHtml(b.name)}</span>`).join("")}
+        ${dateStr <= todayStr ? `<span class="cal-balance">${fmtVnd(balanceAsOf(dateStr))}</span>` : ""}
       </div>
     `);
   }
@@ -625,12 +649,15 @@ function render() {
   `;
   }).join("") : `<p class="rows-empty">No recurring fees yet — add one below (a streaming sub, a course platform, etc).</p>`;
 
+  const balMap = runningBalanceMap();
+  const balCell = e => balMap.has(e.id) ? fmtVnd(balMap.get(e.id)) : "—";
+
   const incomeRows = [...data.income].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
   const incomeHtml = incomeRows.length ? `
     <div class="table-scroll"><table class="rows-table">
-      <thead><tr><th>Date</th><th>Source</th><th>Account</th><th>Amount</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Source</th><th>Account</th><th>Amount</th><th>Balance</th><th></th></tr></thead>
       <tbody>
-        ${incomeRows.map(e => `<tr><td>${e.date}</td><td>${escapeHtml(e.source)}</td><td><select class="cat-edit" data-acc-edit="income" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${incomeRows.map(e => `<tr><td>${e.date}</td><td>${escapeHtml(e.source)}</td><td><select class="cat-edit" data-acc-edit="income" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="income" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No income logged yet.</p>`;
@@ -638,9 +665,9 @@ function render() {
   const expenseRows = [...data.expenses].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
   const expenseHtml = expenseRows.length ? `
     <div class="table-scroll"><table class="rows-table">
-      <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Category</th><th>Account</th><th>Note</th><th>Amount</th><th>Balance</th><th></th></tr></thead>
       <tbody>
-        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td><select class="cat-edit" data-acc-edit="expenses" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
+        ${expenseRows.map(e => `<tr data-cat style="--cat-color:${CAT_COLOR[e.category] || "var(--ink-soft)"}"><td>${e.date}</td><td><select class="cat-edit" data-cat-edit="expenses" data-id="${e.id}">${CATEGORIES.map(c => `<option value="${c.key}" ${c.key === e.category ? "selected" : ""}>${c.label}</option>`).join("")}</select></td><td><select class="cat-edit" data-acc-edit="expenses" data-id="${e.id}">${accountOptionsHtml(e.account)}</select></td><td>${escapeHtml(e.note || "")}${e.link ? ` <a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" title="${escapeHtml(e.link)}">&#8599;</a>` : ""}</td><td class="num">${fmtBoth(e.amount)}</td><td class="num">${balCell(e)}</td><td><button class="row-del" data-del="expenses" data-id="${e.id}" type="button">&times;</button></td></tr>`).join("")}
       </tbody>
     </table></div>
   ` : `<p class="rows-empty">No expenses logged yet.</p>`;
