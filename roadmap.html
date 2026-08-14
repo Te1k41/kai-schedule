@@ -331,8 +331,9 @@ let editingMeta = false;
 function flatTasks() {
   return phases.flatMap(p => p.tasks.map(t => ({ ...t, phaseId: p.id, phaseTitle: p.title, phaseWeeks: p.weeks })));
 }
-function totalCount() { return flatTasks().length; }
-function doneCount() { return flatTasks().filter(t => progress[t.id]).length; }
+function isOptional(t) { return /^optional:/i.test(t.label); }
+function totalCount() { return flatTasks().filter(t => !isOptional(t)).length; }
+function doneCount() { return flatTasks().filter(t => !isOptional(t) && progress[t.id]).length; }
 function nextTask() { return flatTasks().find(t => !progress[t.id]) || null; }
 
 async function loadProgress() {
@@ -552,7 +553,8 @@ function render() {
   `;
 
   const phasesHtml = phases.map((phase, i) => {
-    const pDone = phase.tasks.filter(t => progress[t.id]).length;
+    const pRequired = phase.tasks.filter(t => !isOptional(t));
+    const pDone = pRequired.filter(t => progress[t.id]).length;
     const isOpen = openPhases.has(phase.id) || editMode;
     const isCurrentPhase = nt && nt.phaseId === phase.id;
     const tasksHtml = phase.tasks.map(t => {
@@ -644,7 +646,7 @@ function render() {
             </span>
             <span class="phase-header-right">
               ${phaseEditControls}
-              <span class="phase-count">${pDone}/${phase.tasks.length}</span>
+              <span class="phase-count">${pDone}/${pRequired.length}</span>
               <span class="chevron">▾</span>
             </span>
           </div>
